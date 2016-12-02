@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="JCollectd" default="default" basedir=".">
+    <property name="src.dir" value="src"/>
+    <property name="lib.dir" value="libs"/>
+    <property name="build.dir" value="build"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="target.dir" value="target"/>
+    <!-- customizzare i parametri sottostanti -->
+    <property name="javaversion" value="1.8"/>
+    <property name="main.class" value="main.JCollectd"/>
+
+    <target name="default" depends="clean,dist"/>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.dir}"/>
+        <delete dir="${target.dir}"/>
+    </target>
+
+    <!-- imposto il classpath per risolvere le dipendenze di compilazione -->
+    <path id="classpath">
+        <fileset dir="${lib.dir}" includes="**/*.jar"/>
+    </path>
+
+    <target name="compile">
+        <mkdir dir="${build.dir}"/>
+        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath" source="${javaversion}" target="${javaversion}" encoding="UTF-8" includeAntRuntime="no" debug="true"/>
+        <!-- copio le risorse non java (wsdl, log4j2.xml, ...) -->
+        <copy todir="${build.dir}">
+            <fileset dir="${src.dir}">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <!-- scompatto ed includo le librerie per risolvere le dipendenze a runtime -->
+    <target name="embed-libs">
+        <unjar dest="${build.dir}">
+            <fileset dir="${lib.dir}">
+                <include name="**/*.jar"/>
+            </fileset>
+        </unjar>
+    </target>
+
+    <target name="dist-external" depends="compile">
+        <mkdir dir="${dist.dir}"/>
+        <mkdir dir="${dist.dir}/${lib.dir}"/>
+        <manifestclasspath property="manifest.classpath" jarfile="${lib.dir}">
+            <classpath refid="classpath" />
+        </manifestclasspath>
+        <jar destfile="${dist.dir}/${ant.project.name}.jar" basedir="${build.dir}" compress="true" level="9">
+            <!-- se le librerie sono esterne, le includo nel manifest -->
+            <manifest>
+                <attribute name="Main-Class" value="${main.class}"/>
+                <attribute name="Class-Path" value="${manifest.classpath}"/>
+            </manifest>
+        </jar>
+        <copy todir="${dist.dir}/${lib.dir}">
+            <fileset dir="${lib.dir}">
+                <include name="**/*.jar"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="dist" depends="compile,embed-libs">
+        <mkdir dir="${dist.dir}"/>
+        <jar destfile="${dist.dir}/${ant.project.name}.jar" basedir="${build.dir}" compress="true" level="9">
+            <!-- se le librerie sono embedded, non le includo nel manifest -->
+            <manifest>
+                <attribute name="Main-Class" value="${main.class}"/>
+            </manifest>
+        </jar>
+        <!-- opzionale: sposto il file nella cartella di destinazione -->
+        <!-- move file="${dist.dir}/${ant.project.name}.jar" todir="${target.dir}" /-->
+    </target>
+</project>
