@@ -1,7 +1,10 @@
 package main;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -17,6 +20,10 @@ public class JCollectd {
     }
 
     public static void main(String[] args) {
+        init(args);
+    }
+
+    private static void init(String[] args) {
         if (args.length != 1) {
             LOGGER.severe("Please provide path to configuration file as parameter, aborting");
             System.exit(1);
@@ -31,6 +38,28 @@ public class JCollectd {
         } catch (IOException ex) {
             LOGGER.severe("Configuration file not found or not readable at specified path, aborting");
             System.exit(1);
+        }
+
+        // parsing and sanitizing parameters
+        String propValue = prop.getProperty("db.path");
+        if (propValue == null || propValue.trim().equals("")) {
+            LOGGER.severe("Mandatory parameter 'dbpath' not found in configuration file, aborting");
+            System.exit(1);
+        } else {
+            propValue = propValue.trim();
+            try {
+                Path p = Paths.get(propValue);
+                if (p.getParent() != null) {
+                    File f = p.getParent().toFile();
+                    if (!f.exists() || !f.isDirectory() || !f.canWrite()) {
+                        LOGGER.severe("Parameter 'db.path' set to non existent or non writable directory, aborting");
+                        System.exit(1);
+                    }
+                }
+            } catch (RuntimeException ex) {
+                LOGGER.severe("Parameter 'db.path' set to an illegal value, aborting");
+                System.exit(1);
+            }
         }
 
     }
