@@ -16,7 +16,7 @@ public class CollectEngine {
 
     private final CollectConfig conf;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final long SAMPLING_INTERVAL = 6000L;
+    private final long SAMPLING_INTERVAL = 1000L;
 
     private CollectResult prevResult;
     private CollectResult curResult;
@@ -74,6 +74,8 @@ public class CollectEngine {
     private CpuSample parseCpu() {
         CpuSample cpu = new CpuSample();
         if (System.getProperty("os.name").equals("Linux")) {
+            // since the first word of line is 'cpu', numbers start from split[1]
+            // 4th value is idle, 5th is iowait
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/stat"))) {
                 String line = br.readLine();
                 String[] split = line.split("\\s+");
