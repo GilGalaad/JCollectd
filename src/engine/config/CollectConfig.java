@@ -1,4 +1,4 @@
-package engine;
+package engine.config;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ public class CollectConfig {
     private String hostname;
     private int reportHours;
     private int retentionHours;
-    private ArrayList<ProbeConfig> probeConfList;
+    private ArrayList<ProbeConfig> probeConfigList;
 
     public Path getDbPath() {
         return dbPath;
@@ -52,12 +52,12 @@ public class CollectConfig {
         this.retentionHours = retentionHours;
     }
 
-    public ArrayList<ProbeConfig> getProbeConfList() {
-        return probeConfList;
+    public ArrayList<ProbeConfig> getProbeConfigList() {
+        return probeConfigList;
     }
 
-    public void setProbeConfList(ArrayList<ProbeConfig> probeConfList) {
-        this.probeConfList = probeConfList;
+    public void setProbeConfigList(ArrayList<ProbeConfig> probeConfigList) {
+        this.probeConfigList = probeConfigList;
     }
 
 }

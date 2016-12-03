@@ -1,11 +1,11 @@
 package main;
 
-import engine.CollectConfig;
 import engine.CollectEngine;
-import engine.ProbeConfig;
-import engine.ProbeConfig.GraphSize;
-import engine.ProbeConfig.ProbeType;
 import engine.ShutdownHook;
+import engine.config.CollectConfig;
+import engine.config.ProbeConfig;
+import engine.config.ProbeConfig.GraphSize;
+import engine.config.ProbeConfig.ProbeType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +16,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +34,11 @@ public class JCollectd {
     }
 
     private static CollectConfig init(String[] args) {
+        if (!System.getProperty("os.name").equals("Linux")) {
+            logger.fatal("Unsupported platform: {}, aborting", System.getProperty("os.name"));
+            //System.exit(1);
+        }
+
         if (args.length != 1) {
             logger.fatal("Please provide path to configuration file as parameter, aborting");
             System.exit(1);
@@ -158,7 +164,7 @@ public class JCollectd {
         }
         Collections.sort(plist);
         ArrayList<ProbeConfig> probeConfList = new ArrayList<>(plist.size());
-        conf.setProbeConfList(probeConfList);
+        conf.setProbeConfigList(probeConfList);
         logger.info("Found {} probe definitions", plist.size());
         for (int i = 0; i < plist.size(); i++) {
             String[] split = plist.get(i).split("_", -1);
@@ -183,9 +189,9 @@ public class JCollectd {
             } else if (propValue.equalsIgnoreCase("net")) {
                 logger.info("Probe #{} -> {}, {}, {}", idx, ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx));
                 probeConfList.add(new ProbeConfig(ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
-            } else if (propValue.equalsIgnoreCase("blk")) {
-                logger.info("Probe #{} -> {}, {}, {}", idx, ProbeType.BLK, getGraphSize(prop, idx), getProbeDevice(prop, idx));
-                probeConfList.add(new ProbeConfig(ProbeType.BLK, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("hdd")) {
+                logger.info("Probe #{} -> {}, {}, {}", idx, ProbeType.HDD, getGraphSize(prop, idx), getProbeDevice(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.HDD, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
             } else {
                 logger.fatal("Unsupported probe #{} type: {}, aborting", idx, propValue);
                 System.exit(1);
@@ -220,5 +226,9 @@ public class JCollectd {
 
     public static boolean isEmpty(String str) {
         return (str == null || str.trim().equals(""));
+    }
+
+    public static String prettyPrint(long num) {
+        return String.format(Locale.ITALY, "%,d", num);
     }
 }

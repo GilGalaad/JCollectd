@@ -1,4 +1,4 @@
-package engine;
+package engine.config;
 
 public class ProbeConfig {
 
@@ -7,7 +7,7 @@ public class ProbeConfig {
         CPU,
         MEM,
         NET,
-        BLK
+        HDD
     }
 
     public enum GraphSize {
