@@ -15,7 +15,7 @@
     </appenders>
     <loggers>
         <root level="ALL">
-            <appender-ref ref="Console" level="DEBUG" />
+            <appender-ref ref="Console" level="INFO" />
         </root>
     </loggers>
 </configuration>
