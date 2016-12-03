@@ -20,7 +20,7 @@ public class CollectEngine {
 
     private final CollectConfig conf;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final long SAMPLING_INTERVAL = 1000L;
+    private final long SAMPLING_INTERVAL = 2000L;
 
     private CollectResult prevResult;
     private CollectResult curResult;
