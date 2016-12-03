@@ -1,6 +1,10 @@
 package main;
 
 import engine.CollectConfig;
+import engine.CollectEngine;
+import engine.ProbeConfig;
+import engine.ProbeConfig.GraphSize;
+import engine.ProbeConfig.ProbeType;
 import engine.ShutdownHook;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,6 +28,8 @@ public class JCollectd {
         CollectConfig conf = init(args);
         Thread sh = new ShutdownHook(Thread.currentThread());
         Runtime.getRuntime().addShutdownHook(sh);
+        CollectEngine eng = new CollectEngine(conf);
+        eng.run();
     }
 
     private static CollectConfig init(String[] args) {
@@ -60,7 +66,7 @@ public class JCollectd {
                         System.exit(1);
                     }
                 }
-                logger.debug("Parameter dbpath -> {}", p.toString());
+                logger.info("Parameter dbpath -> {}", p.toString());
                 conf.setDbPath(p);
             } catch (RuntimeException ex) {
                 logger.fatal("Parameter 'dbpath' set to an illegal value, aborting");
@@ -83,7 +89,7 @@ public class JCollectd {
                         System.exit(1);
                     }
                 }
-                logger.debug("Parameter webpath -> {}", p.toString());
+                logger.info("Parameter webpath -> {}", p.toString());
                 conf.setWebPath(p);
             } catch (RuntimeException ex) {
                 logger.fatal("Parameter 'webpath' set to an illegal value, aborting");
@@ -95,25 +101,25 @@ public class JCollectd {
         if (isEmpty(propValue)) {
             try {
                 String hostname = InetAddress.getLocalHost().getHostName();
-                logger.debug("Parameter hostname -> {} (autodiscovered)", hostname);
+                logger.info("Parameter hostname -> {} (autodiscovered)", hostname);
                 conf.setHostname(hostname);
             } catch (UnknownHostException ex) {
-                logger.debug("Parameter hostname -> {} (autodiscovery failed)", "localhost");
+                logger.info("Parameter hostname -> {} (autodiscovery failed)", "localhost");
                 conf.setHostname("localhost");
             }
         } else {
-            logger.debug("Parameter hostname -> {}", propValue.trim());
+            logger.info("Parameter hostname -> {}", propValue.trim());
             conf.setHostname(propValue.trim());
         }
 
         propValue = (prop.getProperty("reportHours"));
         if (isEmpty(propValue)) {
-            logger.debug("Parameter reportHours -> {} (default)", 12);
+            logger.info("Parameter reportHours -> {} (default)", 12);
             conf.setReportHours(12);
         } else {
             try {
                 int reportHours = Integer.parseUnsignedInt(propValue.trim());
-                logger.debug("Parameter reportHours -> {}", reportHours);
+                logger.info("Parameter reportHours -> {}", reportHours);
                 conf.setReportHours(reportHours);
             } catch (NumberFormatException ex) {
                 logger.fatal("Parameter 'reportHours' set to an illegal value, aborting");
@@ -123,16 +129,16 @@ public class JCollectd {
 
         propValue = (prop.getProperty("retentionHours"));
         if (isEmpty(propValue)) {
-            logger.debug("Parameter retentionHours -> {} (default)", Math.max(12, conf.getReportHours()));
+            logger.info("Parameter retentionHours -> {} (default)", Math.max(12, conf.getReportHours()));
             conf.setRetentionHours(Math.max(12, conf.getReportHours()));
         } else {
             try {
                 int retentionHours = Integer.parseUnsignedInt(propValue.trim());
                 if (retentionHours >= conf.getReportHours()) {
-                    logger.debug("Parameter retentionHours -> {}", retentionHours);
+                    logger.info("Parameter retentionHours -> {}", retentionHours);
                     conf.setReportHours(retentionHours);
                 } else {
-                    logger.debug("Parameter retentionHours -> {} (floored by reportHours)", conf.getReportHours());
+                    logger.info("Parameter retentionHours -> {} (floored by reportHours)", conf.getReportHours());
                     conf.setReportHours(conf.getReportHours());
                 }
             } catch (NumberFormatException ex) {
@@ -143,30 +149,73 @@ public class JCollectd {
 
         // parsing probes properties
         ArrayList<String> plist = new ArrayList<>();
-        Enumeration<String> iter = (Enumeration<String>) prop.propertyNames();
+        Enumeration<?> iter = prop.propertyNames();
         while (iter.hasMoreElements()) {
-            String p = iter.nextElement();
+            String p = (String) iter.nextElement();
             if (p.matches("probe_\\d+_type")) {
                 plist.add(p);
             }
         }
         Collections.sort(plist);
-        conf.setProbeConfList(new ArrayList<>(plist.size()));
+        ArrayList<ProbeConfig> probeConfList = new ArrayList<>(plist.size());
+        conf.setProbeConfList(probeConfList);
+        logger.info("Found {} probe definitions", plist.size());
         for (int i = 0; i < plist.size(); i++) {
-            String pn = plist.get(i);
-            int idx = Integer.parseInt(pn.substring(6, pn.lastIndexOf("_")));
+            String[] split = plist.get(i).split("_", -1);
+            int idx = Integer.parseInt(split[1]);
             if (idx != i + 1) {
-                logger.fatal("Inconsistent probe list: probe #{} missing", i + 1);
+                logger.fatal("Illegal probe list: probe #{} missing, aborting", i + 1);
                 System.exit(1);
             }
-            propValue = prop.getProperty(pn);
+            propValue = prop.getProperty(plist.get(i));
             if (isEmpty(propValue)) {
-                logger.fatal("Inconsistent probe list: probe #{} undefined", i + 1);
+                logger.fatal("Illegal probe list: probe #{} undefined, aborting", idx);
+                System.exit(1);
+            } else if (propValue.equalsIgnoreCase("load")) {
+                logger.info("Probe #{} -> {}, {}", idx, ProbeType.LOAD, getGraphSize(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.LOAD, getGraphSize(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("cpu")) {
+                logger.info("Probe #{} -> {}, {}", idx, ProbeType.CPU, getGraphSize(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.CPU, getGraphSize(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("mem")) {
+                logger.info("Probe #{} -> {}, {}", idx, ProbeType.MEM, getGraphSize(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.MEM, getGraphSize(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("net")) {
+                logger.info("Probe #{} -> {}, {}, {}", idx, ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("blk")) {
+                logger.info("Probe #{} -> {}, {}, {}", idx, ProbeType.BLK, getGraphSize(prop, idx), getProbeDevice(prop, idx));
+                probeConfList.add(new ProbeConfig(ProbeType.BLK, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
+            } else {
+                logger.fatal("Unsupported probe #{} type: {}, aborting", idx, propValue);
                 System.exit(1);
             }
         }
-
         return conf;
+    }
+
+    private static GraphSize getGraphSize(Properties prop, int idx) {
+        String gsize = prop.getProperty("probe_" + idx + "_size");
+        if (isEmpty(gsize) || gsize.trim().equalsIgnoreCase("full")) {
+            return GraphSize.FULL_SIZE;
+        } else if (gsize.trim().equalsIgnoreCase("half")) {
+            return GraphSize.HALF_SIZE;
+        } else {
+            logger.fatal("Unsupported probe #{} size: {}, aborting", idx, gsize);
+            System.exit(1);
+        }
+        return null;
+    }
+
+    private static String getProbeDevice(Properties prop, int idx) {
+        String device = prop.getProperty("probe_" + idx + "_device");
+        if (isEmpty(device)) {
+            logger.fatal("Illegal probe list: probe #{} requires mandatory device name, aborting", idx);
+            System.exit(1);
+        } else {
+            return device.trim();
+        }
+        return null;
     }
 
     public static boolean isEmpty(String str) {
