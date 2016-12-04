@@ -98,31 +98,74 @@ public class CollectEngine {
                     try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
                         stmt.executeUpdate(BEGIN_TRANS);
                         String sample_tms = sdf.format(curResult.getCollectTms());
+                        long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
                         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                             if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
+                                LoadSample cs = (LoadSample) curResult.getProbeSampleList().get(i);
                                 pstmt.setString(1, "load1m");
                                 pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad1minute().toString());
+                                pstmt.setString(3, cs.getLoad1minute().toString());
                                 pstmt.addBatch();
                                 pstmt.setString(1, "load5m");
                                 pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad5minute().toString());
+                                pstmt.setString(3, cs.getLoad5minute().toString());
                                 pstmt.addBatch();
                                 pstmt.setString(1, "load15m");
                                 pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad15minute().toString());
+                                pstmt.setString(3, cs.getLoad15minute().toString());
                                 pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
+                                // cpu saved in percent, rounded to 1 significant digit
+                                CpuSample cs = (CpuSample) curResult.getProbeSampleList().get(i);
+                                CpuSample ps = (CpuSample) prevResult.getProbeSampleList().get(i);
                                 pstmt.setString(1, "cpu");
                                 pstmt.setString(2, sample_tms);
-                                long diffTotal = ((CpuSample) curResult.getProbeSampleList().get(i)).getTotalTime() - ((CpuSample) prevResult.getProbeSampleList().get(i)).getTotalTime();
-                                long diffIdle = ((CpuSample) curResult.getProbeSampleList().get(i)).getIdleTime() - ((CpuSample) prevResult.getProbeSampleList().get(i)).getIdleTime();
+                                long diffTotal = cs.getTotalTime() - ps.getTotalTime();
+                                long diffIdle = cs.getIdleTime() - ps.getIdleTime();
                                 BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
                                 pstmt.setString(3, cpu.toString());
                                 pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
+                                // mem saved in mebibyte, rounded to nearest integer
+                                MemSample cs = (MemSample) curResult.getProbeSampleList().get(i);
+                                pstmt.setString(1, "mem");
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                                pstmt.setString(3, mem.toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "swap");
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                                pstmt.setString(3, swap.toString());
+                                pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
+                                // net saved in kbyte/s, rounded to nearest integer
+                                NetSample cs = (NetSample) curResult.getProbeSampleList().get(i);
+                                NetSample ps = (NetSample) prevResult.getProbeSampleList().get(i);
+                                pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+                                pstmt.setString(3, rx.toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "net_tx_" + cs.getInterfaceName());
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+                                pstmt.setString(3, tx.toString());
+                                pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
+                                // net saved in mbyte/s, rounded to 1 significant digit
+                                HddSample cs = (HddSample) curResult.getProbeSampleList().get(i);
+                                HddSample ps = (HddSample) prevResult.getProbeSampleList().get(i);
+                                pstmt.setString(1, "hdd_read_" + cs.getDeviceName());
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+                                pstmt.setString(3, read.toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "hdd_write_" + cs.getDeviceName());
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+                                pstmt.setString(3, write.toString());
+                                pstmt.addBatch();
                             }
                         }
                         pstmt.executeBatch();

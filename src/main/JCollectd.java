@@ -36,7 +36,7 @@ public class JCollectd {
     private static CollectConfig init(String[] args) {
         if (!System.getProperty("os.name").equals("Linux")) {
             logger.fatal("Unsupported platform: {}, aborting", System.getProperty("os.name"));
-            //System.exit(1);
+            System.exit(1);
         }
 
         if (args.length != 1) {
