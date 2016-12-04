@@ -12,8 +12,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -23,7 +25,7 @@ import static main.JCollectd.prettyPrint;
 public class CollectEngine {
 
     private final CollectConfig conf;
-    private final long SAMPLING_INTERVAL = 3000L;
+    private final long SAMPLING_INTERVAL = 5000L;
 
     // results
     private CollectResult prevResult;
@@ -35,7 +37,7 @@ public class CollectEngine {
     private static final String INS_STMT = "INSERT INTO probe_samples (probe_name, sample_tms, sample_value) VALUES (?,?,?)";
     private static final String BEGIN_TRANS = "BEGIN TRANSACTION";
     private static final String END_TRANS = "END TRANSACTION";
-    private static final String PRAGMA = "PRAGMA busy_timeout = 1000";
+    private static final String PRAGMA = "PRAGMA busy_timeout = 5000";
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
     public CollectEngine(CollectConfig conf) {
@@ -92,19 +94,43 @@ public class CollectEngine {
                         stmt.executeUpdate(PRAGMA);
                         stmt.executeUpdate(CREATE_TB_STMT);
                         stmt.executeUpdate(CREATE_IDX_STMT);
+                    }
+                    try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
                         stmt.executeUpdate(BEGIN_TRANS);
+                        String sample_tms = sdf.format(curResult.getCollectTms());
                         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                             if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
+                                pstmt.setString(1, "load1m");
+                                pstmt.setString(2, sample_tms);
+                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad1minute().toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "load5m");
+                                pstmt.setString(2, sample_tms);
+                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad5minute().toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "load15m");
+                                pstmt.setString(2, sample_tms);
+                                pstmt.setString(3, ((LoadSample) curResult.getProbeSampleList().get(i)).getLoad15minute().toString());
+                                pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
+                                pstmt.setString(1, "cpu");
+                                pstmt.setString(2, sample_tms);
+                                long diffTotal = ((CpuSample) curResult.getProbeSampleList().get(i)).getTotalTime() - ((CpuSample) prevResult.getProbeSampleList().get(i)).getTotalTime();
+                                long diffIdle = ((CpuSample) curResult.getProbeSampleList().get(i)).getIdleTime() - ((CpuSample) prevResult.getProbeSampleList().get(i)).getIdleTime();
+                                BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
+                                pstmt.setString(3, cpu.toString());
+                                pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
                             }
                         }
+                        pstmt.executeBatch();
                         stmt.executeUpdate(END_TRANS);
                     }
                 } catch (SQLException ex) {
                     logger.fatal("Error while saving samples to DB, aborting - {}", ex.getMessage());
+                    return;
                 }
                 long endSaveTime = System.nanoTime();
                 logger.info("Saving time: {} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
