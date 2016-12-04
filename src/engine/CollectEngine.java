@@ -12,6 +12,10 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import static main.JCollectd.logger;
 import static main.JCollectd.prettyPrint;
@@ -19,17 +23,27 @@ import static main.JCollectd.prettyPrint;
 public class CollectEngine {
 
     private final CollectConfig conf;
-    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final long SAMPLING_INTERVAL = 2000L;
+    private final long SAMPLING_INTERVAL = 3000L;
 
+    // results
     private CollectResult prevResult;
     private CollectResult curResult;
+
+    // jdbc
+    private static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT, sample_tms TEXT, sample_value TEXT)";
+    private static final String CREATE_IDX_STMT = "CREATE UNIQUE INDEX IF NOT EXISTS idx_probe_samples ON probe_samples (probe_name, sample_tms)";
+    private static final String INS_STMT = "INSERT INTO probe_samples (probe_name, sample_tms, sample_value) VALUES (?,?,?)";
+    private static final String BEGIN_TRANS = "BEGIN TRANSACTION";
+    private static final String END_TRANS = "END TRANSACTION";
+    private static final String PRAGMA = "PRAGMA busy_timeout = 1000";
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
     }
 
     public void run() {
+        logger.info("Entering in main loop");
         while (true) {
             // waiting for next schedule
             try {
@@ -44,12 +58,12 @@ public class CollectEngine {
             curResult = new CollectResult(conf.getProbeConfigList().size());
 
             // collecting samples
+            if (Thread.currentThread().isInterrupted()) {
+                logger.info("Received KILL signal, exiting from main loop");
+                return;
+            }
             long startCollectTime = System.nanoTime();
             for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-                if (Thread.currentThread().isInterrupted()) {
-                    logger.info("Received KILL signal, exiting from main loop");
-                    return;
-                }
                 if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
                     curResult.getProbeSampleList().add(i, parseLoadAvg());
                 } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
@@ -65,6 +79,36 @@ public class CollectEngine {
             }
             long endCollectTime = System.nanoTime();
             logger.info("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+
+            // saving results
+            if (Thread.currentThread().isInterrupted()) {
+                logger.info("Received KILL signal, exiting from main loop");
+                return;
+            }
+            if (prevResult != null) {
+                long startSaveTime = System.nanoTime();
+                try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
+                    try (Statement stmt = conn.createStatement()) {
+                        stmt.executeUpdate(PRAGMA);
+                        stmt.executeUpdate(CREATE_TB_STMT);
+                        stmt.executeUpdate(CREATE_IDX_STMT);
+                        stmt.executeUpdate(BEGIN_TRANS);
+                        for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
+                            if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
+                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
+                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
+                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
+                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
+                            }
+                        }
+                        stmt.executeUpdate(END_TRANS);
+                    }
+                } catch (SQLException ex) {
+                    logger.fatal("Error while saving samples to DB, aborting - {}", ex.getMessage());
+                }
+                long endSaveTime = System.nanoTime();
+                logger.info("Saving time: {} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
+            }
         }
     }
 
