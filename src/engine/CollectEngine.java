@@ -1,5 +1,16 @@
 package engine;
 
+import static engine.JdbcUtils.BEGIN_TRANS;
+import static engine.JdbcUtils.CREATE_IDX_STMT;
+import static engine.JdbcUtils.CREATE_TB_STMT;
+import static engine.JdbcUtils.END_TRANS;
+import static engine.JdbcUtils.INS_STMT;
+import static engine.JdbcUtils.PRAGMA;
+import static engine.JdbcUtils.SELECT_CPU;
+import static engine.JdbcUtils.SELECT_HDD;
+import static engine.JdbcUtils.SELECT_LOAD;
+import static engine.JdbcUtils.SELECT_MEM;
+import static engine.JdbcUtils.SELECT_NET;
 import engine.config.CollectConfig;
 import engine.config.ProbeConfig;
 import engine.config.ProbeConfig.ProbeType;
@@ -38,7 +49,7 @@ import static main.JCollectd.prettyPrint;
 public class CollectEngine {
 
     private final CollectConfig conf;
-    private final long SAMPLING_INTERVAL = 5000L;
+    private final long SAMPLING_INTERVAL = 60 * 1000L;
 
     // results
     private CollectResult prevResult;
@@ -48,34 +59,6 @@ public class CollectEngine {
     private final SimpleDateFormat sdfms = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     private final SimpleDateFormat sdfhr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-
-    // jdbc
-    private static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT, sample_tms TEXT, sample_value TEXT)";
-    private static final String CREATE_IDX_STMT = "CREATE UNIQUE INDEX IF NOT EXISTS idx_probe_samples ON probe_samples (probe_name, sample_tms)";
-    private static final String INS_STMT = "INSERT INTO probe_samples (probe_name, sample_tms, sample_value) VALUES (?,?,?)";
-    private static final String BEGIN_TRANS = "BEGIN TRANSACTION";
-    private static final String END_TRANS = "END TRANSACTION";
-    private static final String PRAGMA = "PRAGMA busy_timeout = 5000";
-    private static final String SELECT_LOAD = "SELECT sample_tms,\n"
-            + "MAX(CASE WHEN probe_name = 'load1m' THEN sample_value ELSE NULL END) l1m,\n"
-            + "MAX(CASE WHEN probe_name = 'load5m' THEN sample_value ELSE NULL END) l5m,\n"
-            + "MAX(CASE WHEN probe_name = 'load15m' THEN sample_value ELSE NULL END) l15m\n"
-            + "FROM probe_samples\n"
-            + "WHERE sample_tms > ?\n"
-            + "AND (probe_name = 'load1m' OR probe_name = 'load5m' OR probe_name = 'load15m')\n"
-            + "GROUP BY sample_tms ORDER BY sample_tms;";
-    private static final String SELECT_CPU = "SELECT sample_tms, sample_value\n"
-            + "FROM probe_samples\n"
-            + "WHERE sample_tms > ?\n"
-            + "AND probe_name = 'cpu'\n"
-            + "ORDER BY sample_tms;";
-    private static final String SELECT_MEM = "SELECT sample_tms,\n"
-            + "MAX(CASE WHEN probe_name = 'mem' THEN sample_value ELSE NULL END) mem,\n"
-            + "MAX(CASE WHEN probe_name = 'swap' THEN sample_value ELSE NULL END) swap\n"
-            + "FROM probe_samples\n"
-            + "WHERE sample_tms > ?\n"
-            + "AND (probe_name = 'mem' OR probe_name = 'swap')\n"
-            + "GROUP BY sample_tms ORDER BY sample_tms";
 
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
@@ -95,7 +78,7 @@ public class CollectEngine {
             // making room for new samples
             prevResult = curResult;
             curResult = new CollectResult(conf.getProbeConfigList().size());
-            long startCollectTime, endCollectTime, startSaveTime, endSaveTime, startReportTime, endReportTime;
+            long startCollectTime = 0, endCollectTime = 0, startSaveTime = 0, endSaveTime = 0, startReportTime = 0, endReportTime = 0;
 
             // collecting samples
             if (Thread.currentThread().isInterrupted()) {
@@ -180,15 +163,15 @@ public class CollectEngine {
                                 // net saved in kbyte/s, rounded to nearest integer
                                 NetSample cs = (NetSample) curResult.getProbeSampleList().get(i);
                                 NetSample ps = (NetSample) prevResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-                                pstmt.setString(3, rx.toString());
-                                pstmt.addBatch();
                                 pstmt.setString(1, "net_tx_" + cs.getInterfaceName());
                                 pstmt.setString(2, sample_tms);
                                 BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
                                 pstmt.setString(3, tx.toString());
+                                pstmt.addBatch();
+                                pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
+                                pstmt.setString(2, sample_tms);
+                                BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+                                pstmt.setString(3, rx.toString());
                                 pstmt.addBatch();
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
                                 // net saved in mbyte/s, rounded to 1 significant digit
@@ -261,12 +244,28 @@ public class CollectEngine {
                             bodySb.append("<div id=\"div_mem\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
+                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
+                            jsDataSb.append(writeNet(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
+                            bodySb.append("<div id=\"div_net_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
+                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
+                            bodySb.append("\"></div>").append(System.lineSeparator());
+                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
+                            jsDataSb.append(writeHdd(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
+                            bodySb.append("<div id=\"div_hdd_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
+                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
+                            bodySb.append("\"></div>").append(System.lineSeparator());
                         }
+
                     }
 
                     // replacing placeholders
                     report = report.replaceFirst("XXX_JSDATA_XXX\n", jsDataSb.toString());
                     report = report.replaceFirst("XXX_BODY_XXX\n", bodySb.toString());
+                    report = report.replaceFirst("XXX_TIMINGS_XXX",
+                            String.format("Time spent collecting samples: %,dms, writing samples: %,dms, generating report: %,dms",
+                                    (endCollectTime - startCollectTime) / 1000000L,
+                                    (endSaveTime - startSaveTime) / 1000000L,
+                                    (System.nanoTime() - startReportTime) / 1000000L));
 
                     // writing to file
                     bw.write(report);
@@ -560,5 +559,105 @@ public class CollectEngine {
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
+    }
+
+    private String writeNet(Connection conn, String fromTime, String interfaceName) throws SQLException, IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawNet_").append(interfaceName).append(");").append(System.lineSeparator());
+        sb.append("function drawNet_").append(interfaceName).append("() {").append(System.lineSeparator());
+        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'TX');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'RX');").append(System.lineSeparator());
+
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_NET)) {
+            stmt.setString(1, fromTime);
+            stmt.setString(2, "net_tx_" + interfaceName);
+            stmt.setString(3, "net_rx_" + interfaceName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
+                while (rs.next()) {
+                    try {
+                        cal.setTime(sdf.parse(rs.getString(1)));
+                    } catch (ParseException ex) {
+                        // can't happen, but just in case we skip the line
+                        continue;
+                    }
+                    sb.append("data.addRows([[new Date(");
+                    sb.append(cal.get(Calendar.YEAR)).append(",");
+                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
+                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
+                    sb.append(cal.get(Calendar.MINUTE)).append(",");
+                    sb.append(cal.get(Calendar.SECOND)).append("),");
+                    sb.append(rs.getString(2)).append(",");
+                    sb.append("-").append(rs.getString(3));
+                    sb.append("]]);");
+                    sb.append(System.lineSeparator());
+                }
+            }
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_net.js"), "UTF-8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append(System.lineSeparator());
+            }
+        }
+
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_net_").append(interfaceName).append("'));").append(System.lineSeparator());
+        sb.append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        return sb.toString().replaceFirst("REPLACEME", interfaceName);
+    }
+
+    private String writeHdd(Connection conn, String fromTime, String deviceName) throws SQLException, IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawHdd_").append(deviceName).append(");").append(System.lineSeparator());
+        sb.append("function drawHdd_").append(deviceName).append("() {").append(System.lineSeparator());
+        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'Read');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'Write');").append(System.lineSeparator());
+
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_HDD)) {
+            stmt.setString(1, fromTime);
+            stmt.setString(2, "hdd_read_" + deviceName);
+            stmt.setString(3, "hdd_write_" + deviceName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
+                while (rs.next()) {
+                    try {
+                        cal.setTime(sdf.parse(rs.getString(1)));
+                    } catch (ParseException ex) {
+                        // can't happen, but just in case we skip the line
+                        continue;
+                    }
+                    sb.append("data.addRows([[new Date(");
+                    sb.append(cal.get(Calendar.YEAR)).append(",");
+                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
+                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
+                    sb.append(cal.get(Calendar.MINUTE)).append(",");
+                    sb.append(cal.get(Calendar.SECOND)).append("),");
+                    sb.append(rs.getString(2)).append(",");
+                    sb.append("-").append(rs.getString(3));
+                    sb.append("]]);");
+                    sb.append(System.lineSeparator());
+                }
+            }
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_hdd.js"), "UTF-8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append(System.lineSeparator());
+            }
+        }
+
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_hdd_").append(deviceName).append("'));").append(System.lineSeparator());
+        sb.append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        return sb.toString().replaceFirst("REPLACEME", deviceName);
     }
 }

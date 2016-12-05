@@ -20,3 +20,19 @@ FROM probe_samples
 WHERE sample_tms > ?
 AND (probe_name = 'mem' OR probe_name = 'swap')
 GROUP BY sample_tms ORDER BY sample_tms;
+
+SELECT sample_tms,
+MAX(CASE WHEN probe_name LIKE '%tx%' THEN sample_value ELSE NULL END) tx,
+MAX(CASE WHEN probe_name LIKE '%rx%' THEN sample_value ELSE NULL END) rx
+FROM probe_samples
+WHERE sample_tms > ?
+AND (probe_name = ? OR probe_name = ?)
+GROUP BY sample_tms ORDER BY sample_tms;
+
+SELECT sample_tms,
+MAX(CASE WHEN probe_name LIKE '%read%' THEN sample_value ELSE NULL END) read,
+MAX(CASE WHEN probe_name LIKE '%write%' THEN sample_value ELSE NULL END) write
+FROM probe_samples
+WHERE sample_tms > ?
+AND (probe_name = ? OR probe_name = ?)
+GROUP BY sample_tms ORDER BY sample_tms;

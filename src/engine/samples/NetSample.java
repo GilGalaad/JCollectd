@@ -3,8 +3,8 @@ package engine.samples;
 public class NetSample extends ProbeSample {
 
     private String interfaceName;
-    private long rxBytes;
     private long txBytes;
+    private long rxBytes;
 
     public String getInterfaceName() {
         return interfaceName;
@@ -12,14 +12,6 @@ public class NetSample extends ProbeSample {
 
     public void setInterfaceName(String interfaceName) {
         this.interfaceName = interfaceName;
-    }
-
-    public long getRxBytes() {
-        return rxBytes;
-    }
-
-    public void setRxBytes(long rxBytes) {
-        this.rxBytes = rxBytes;
     }
 
     public long getTxBytes() {
@@ -30,9 +22,17 @@ public class NetSample extends ProbeSample {
         this.txBytes = txBytes;
     }
 
+    public long getRxBytes() {
+        return rxBytes;
+    }
+
+    public void setRxBytes(long rxBytes) {
+        this.rxBytes = rxBytes;
+    }
+
     @Override
     public String toString() {
-        return "NetSample{" + "interfaceName=" + interfaceName + ", rxBytes=" + rxBytes + ", txBytes=" + txBytes + '}';
+        return "NetSample{" + "interfaceName=" + interfaceName + ", txBytes=" + txBytes + ", rxBytes=" + rxBytes + '}';
     }
 
 }
