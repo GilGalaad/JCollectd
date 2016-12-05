@@ -1,6 +1,7 @@
 package engine;
 
 import engine.config.CollectConfig;
+import engine.config.ProbeConfig;
 import engine.config.ProbeConfig.ProbeType;
 import engine.samples.CollectResult;
 import engine.samples.CpuSample;
@@ -46,6 +47,7 @@ public class CollectEngine {
     // dates
     private final SimpleDateFormat sdfms = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private final SimpleDateFormat sdfhr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
     // jdbc
     private static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT, sample_tms TEXT, sample_value TEXT)";
@@ -62,6 +64,18 @@ public class CollectEngine {
             + "WHERE sample_tms > ?\n"
             + "AND (probe_name = 'load1m' OR probe_name = 'load5m' OR probe_name = 'load15m')\n"
             + "GROUP BY sample_tms ORDER BY sample_tms;";
+    private static final String SELECT_CPU = "SELECT sample_tms, sample_value\n"
+            + "FROM probe_samples\n"
+            + "WHERE sample_tms > ?\n"
+            + "AND probe_name = 'cpu'\n"
+            + "ORDER BY sample_tms;";
+    private static final String SELECT_MEM = "SELECT sample_tms,\n"
+            + "MAX(CASE WHEN probe_name = 'mem' THEN sample_value ELSE NULL END) mem,\n"
+            + "MAX(CASE WHEN probe_name = 'swap' THEN sample_value ELSE NULL END) swap\n"
+            + "FROM probe_samples\n"
+            + "WHERE sample_tms > ?\n"
+            + "AND (probe_name = 'mem' OR probe_name = 'swap')\n"
+            + "GROUP BY sample_tms ORDER BY sample_tms";
 
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
@@ -215,9 +229,12 @@ public class CollectEngine {
                     try (Statement stmt = conn.createStatement()) {
                         stmt.executeUpdate(PRAGMA);
                     }
-                    StringBuilder sb = new StringBuilder();
-                    // header
-                    sb.append(writeHeader(conf.getHostname()));
+
+                    // creating html from template
+                    String report = writeTemplate();
+                    report = report.replaceFirst("XXX_TITLE_XXX", conf.getHostname());
+                    report = report.replaceFirst("XXX_HOSTNAME_XXX", conf.getHostname());
+                    report = report.replaceFirst("XXX_DATE_XXX", sdfhr.format(curResult.getCollectTms()));
 
                     // calculate reporting window
                     Calendar cal = Calendar.getInstance();
@@ -226,27 +243,32 @@ public class CollectEngine {
                     String fromTime = sdf.format(cal.getTime());
 
                     // samples
+                    StringBuilder jsDataSb = new StringBuilder();
+                    StringBuilder bodySb = new StringBuilder();
                     for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                         if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                            sb.append(writeLoad(conn, fromTime));
+                            jsDataSb.append(writeLoad(conn, fromTime));
+                            bodySb.append("<div id=\"div_load\" class=\"chart-container ");
+                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
+                            bodySb.append("\"></div>").append(System.lineSeparator());
+                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
+                            jsDataSb.append(writeCpu(conn, fromTime));
+                            bodySb.append("<div id=\"div_cpu\" class=\"chart-container ");
+                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
+                            bodySb.append("\"></div>").append(System.lineSeparator());
+                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
+                            jsDataSb.append(writeMem(conn, fromTime));
+                            bodySb.append("<div id=\"div_mem\" class=\"chart-container ");
+                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
+                            bodySb.append("\"></div>").append(System.lineSeparator());
                         }
                     }
-                    sb.append("</script>").append(System.lineSeparator());
-                    sb.append("</head>\n"
-                            + "    <body>\n"
-                            + "        <div class=\"navbar\">\n"
-                            + "            <span class=\"navlenft\"><i class=\"fa fa-area-chart\"></i> DarkSun</span>\n"
-                            + "            <span class=\"navright\"><i class=\"fa fa-clock-o\"></i> 04/12/2016 10:25:01</span>\n"
-                            + "        </div>\n"
-                            + "        <div class=\"main-container\">\n"
-                            + "<div class=\"chart-container\" id=\"div_load\"></div>"
-                            + "            <div class=\"footer\">\n"
-                            + "                <p>Time spent collecting samples: 24ms, writing samples: 484ms, reading samples: 56ms, generating report: 11ms</p>\n"
-                            + "            </div>\n"
-                            + "        </div>\n"
-                            + "    </body>\n"
-                            + "</html>").append(System.lineSeparator());
-                    String report = sb.toString();
+
+                    // replacing placeholders
+                    report = report.replaceFirst("XXX_JSDATA_XXX\n", jsDataSb.toString());
+                    report = report.replaceFirst("XXX_BODY_XXX\n", bodySb.toString());
+
+                    // writing to file
                     bw.write(report);
                 } catch (IOException ex) {
                     logger.fatal("I/O error while generating HTML report, aborting - {}", ex.getMessage());
@@ -384,15 +406,15 @@ public class CollectEngine {
         return ret;
     }
 
-    private String writeHeader(String hostname) throws IOException {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/header.html"), "UTF-8"))) {
+    private String writeTemplate() throws IOException {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) {
                 sb.append(line).append(System.lineSeparator());
             }
             sb.append(System.lineSeparator());
-            return sb.toString().replaceFirst("REPLACEME", hostname);
+            return sb.toString();
         }
     }
 
@@ -442,7 +464,101 @@ public class CollectEngine {
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_load'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        return sb.toString();
+    }
+
+    private String writeCpu(Connection conn, String fromTime) throws SQLException, IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawCpu);").append(System.lineSeparator());
+        sb.append("function drawCpu() {").append(System.lineSeparator());
+        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'CPU');").append(System.lineSeparator());
+
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_CPU)) {
+            stmt.setString(1, fromTime);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
+                while (rs.next()) {
+                    try {
+                        cal.setTime(sdf.parse(rs.getString(1)));
+                    } catch (ParseException ex) {
+                        // can't happen, but just in case we skip the line
+                        continue;
+                    }
+                    sb.append("data.addRows([[new Date(");
+                    sb.append(cal.get(Calendar.YEAR)).append(",");
+                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
+                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
+                    sb.append(cal.get(Calendar.MINUTE)).append(",");
+                    sb.append(cal.get(Calendar.SECOND)).append("),");
+                    sb.append(rs.getString(2));
+                    sb.append("]]);");
+                    sb.append(System.lineSeparator());
+                }
+            }
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_cpu.js"), "UTF-8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append(System.lineSeparator());
+            }
+        }
+
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_cpu'));").append(System.lineSeparator());
+        sb.append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        return sb.toString();
+    }
+
+    private String writeMem(Connection conn, String fromTime) throws SQLException, IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawMem);").append(System.lineSeparator());
+        sb.append("function drawMem() {").append(System.lineSeparator());
+        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'Physical memory');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'Swap');").append(System.lineSeparator());
+
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_MEM)) {
+            stmt.setString(1, fromTime);
+            try (ResultSet rs = stmt.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
+                while (rs.next()) {
+                    try {
+                        cal.setTime(sdf.parse(rs.getString(1)));
+                    } catch (ParseException ex) {
+                        // can't happen, but just in case we skip the line
+                        continue;
+                    }
+                    sb.append("data.addRows([[new Date(");
+                    sb.append(cal.get(Calendar.YEAR)).append(",");
+                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
+                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
+                    sb.append(cal.get(Calendar.MINUTE)).append(",");
+                    sb.append(cal.get(Calendar.SECOND)).append("),");
+                    sb.append(rs.getString(2)).append(",");
+                    sb.append(rs.getString(3));
+                    sb.append("]]);");
+                    sb.append(System.lineSeparator());
+                }
+            }
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_mem.js"), "UTF-8"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append(System.lineSeparator());
+            }
+        }
+
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_mem'));").append(System.lineSeparator());
+        sb.append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 }

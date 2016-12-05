@@ -3,6 +3,20 @@ MAX(CASE WHEN probe_name = 'load1m' THEN sample_value ELSE NULL END) l1m,
 MAX(CASE WHEN probe_name = 'load5m' THEN sample_value ELSE NULL END) l5m,
 MAX(CASE WHEN probe_name = 'load15m' THEN sample_value ELSE NULL END) l15m
 FROM probe_samples
-WHERE sample_tms > '2016/12/03 19:56:30.000'
+WHERE sample_tms > ?
 AND (probe_name = 'load1m' OR probe_name = 'load5m' OR probe_name = 'load15m')
+GROUP BY sample_tms ORDER BY sample_tms;
+
+SELECT sample_tms, sample_value
+FROM probe_samples
+WHERE sample_tms > ?
+AND probe_name = 'cpu'
+ORDER BY sample_tms;
+
+SELECT sample_tms,
+MAX(CASE WHEN probe_name = 'mem' THEN sample_value ELSE NULL END) mem,
+MAX(CASE WHEN probe_name = 'swap' THEN sample_value ELSE NULL END) swap
+FROM probe_samples
+WHERE sample_tms > ?
+AND (probe_name = 'mem' OR probe_name = 'swap')
 GROUP BY sample_tms ORDER BY sample_tms;
