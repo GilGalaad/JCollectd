@@ -1,5 +1,6 @@
 package engine;
 
+import static engine.JdbcUtils.ANALYZE;
 import static engine.JdbcUtils.BEGIN_TRANS;
 import static engine.JdbcUtils.CREATE_IDX_STMT;
 import static engine.JdbcUtils.CREATE_TB_STMT;
@@ -11,6 +12,7 @@ import static engine.JdbcUtils.SELECT_HDD;
 import static engine.JdbcUtils.SELECT_LOAD;
 import static engine.JdbcUtils.SELECT_MEM;
 import static engine.JdbcUtils.SELECT_NET;
+import static engine.JdbcUtils.VACUUM;
 import engine.config.CollectConfig;
 import engine.config.ProbeConfig;
 import engine.config.ProbeConfig.ProbeType;
@@ -278,6 +280,41 @@ public class CollectEngine {
                 }
                 endReportTime = System.nanoTime();
                 logger.info("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+            }
+
+            // janitor work, once a hour
+            if (Thread.currentThread().isInterrupted()) {
+                logger.info("Received KILL signal, exiting from main loop");
+                return;
+            }
+            if (prevResult != null) {
+                // calculate reporting window
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(curResult.getCollectTms());
+                if (cal.get(Calendar.MINUTE) == 0) {
+                    cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
+                    String fromTime = sdf.format(cal.getTime());
+                    try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
+                        try (Statement stmt = conn.createStatement()) {
+                            stmt.executeUpdate(PRAGMA);
+                        }
+                        try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
+                            stmt.executeUpdate(BEGIN_TRANS);
+                            pstmt.setString(1, fromTime);
+                            pstmt.executeUpdate();
+                            stmt.executeUpdate(END_TRANS);
+                        }
+                        try (Statement stmt = conn.createStatement()) {
+                            stmt.executeUpdate(ANALYZE);
+                        }
+                        try (Statement stmt = conn.createStatement()) {
+                            stmt.executeUpdate(VACUUM);
+                        }
+                    } catch (SQLException ex) {
+                        logger.fatal("Error while cleaning up DB, aborting - {}", ex.getMessage());
+                        return;
+                    }
+                }
             }
         }
     }

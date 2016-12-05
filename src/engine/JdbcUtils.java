@@ -5,8 +5,11 @@ public class JdbcUtils {
     protected static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT, sample_tms TEXT, sample_value TEXT)";
     protected static final String CREATE_IDX_STMT = "CREATE UNIQUE INDEX IF NOT EXISTS idx_probe_samples ON probe_samples (probe_name, sample_tms)";
     protected static final String INS_STMT = "INSERT INTO probe_samples (probe_name, sample_tms, sample_value) VALUES (?,?,?)";
+    protected static final String DEL_STMT = "DELETE FROM probe_samples WHERE sample_tms < ?";
     protected static final String BEGIN_TRANS = "BEGIN TRANSACTION";
     protected static final String END_TRANS = "END TRANSACTION";
+    protected static final String ANALYZE = "ANALYZE";
+    protected static final String VACUUM = "VACUUM";
     protected static final String PRAGMA = "PRAGMA busy_timeout = 5000";
 
     protected static final String SELECT_LOAD = "SELECT sample_tms,\n"
