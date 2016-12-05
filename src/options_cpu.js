@@ -17,7 +17,9 @@ var options = {
     },
     vAxis: {
         textStyle: {color: '#eeeeee'},
-        format: '#\'%\''
+        format: '#\'%\'',
+        minValue: 0,
+        maxValue: 100
     },
     tooltip: {
         textStyle: {color: '#082235'}

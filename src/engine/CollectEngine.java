@@ -220,7 +220,7 @@ public class CollectEngine {
                     }
 
                     // creating html from template
-                    String report = writeTemplate();
+                    String report = readTemplate();
                     report = report.replaceFirst("XXX_TITLE_XXX", conf.getHostname());
                     report = report.replaceFirst("XXX_HOSTNAME_XXX", conf.getHostname());
                     report = report.replaceFirst("XXX_DATE_XXX", sdfhr.format(curResult.getCollectTms()));
@@ -448,14 +448,13 @@ public class CollectEngine {
         return ret;
     }
 
-    private String writeTemplate() throws IOException {
+    private String readTemplate() throws IOException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
             StringBuilder sb = new StringBuilder();
             String line;
             while ((line = br.readLine()) != null) {
                 sb.append(line).append(System.lineSeparator());
             }
-            sb.append(System.lineSeparator());
             return sb.toString();
         }
     }
