@@ -59,6 +59,6 @@ Worths to say that:
 
 ## TODO
 * Add support for FreeBSD platform.
-
+* Maybe make the sampling rate (currently 60 seconds) user configurable.
 
 ####Contributions, critics, suggestions are always welcome. Cheers!
