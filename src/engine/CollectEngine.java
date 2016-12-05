@@ -45,6 +45,9 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.SEVERE;
 import static main.JCollectd.logger;
 import static main.JCollectd.prettyPrint;
 
@@ -67,13 +70,13 @@ public class CollectEngine {
     }
 
     public void run() {
-        logger.info("Entering in main loop");
+        logger.log(INFO, "Entering in main loop");
         while (true) {
             // waiting for next schedule
             try {
                 Thread.sleep(SAMPLING_INTERVAL - (System.currentTimeMillis() % SAMPLING_INTERVAL));
             } catch (InterruptedException ex) {
-                logger.info("Received KILL signal, exiting from main loop");
+                logger.log(INFO, "Received KILL signal, shutting down");
                 return;
             }
 
@@ -84,7 +87,7 @@ public class CollectEngine {
 
             // collecting samples
             if (Thread.currentThread().isInterrupted()) {
-                logger.info("Received KILL signal, exiting from main loop");
+                logger.log(INFO, "Received KILL signal, exiting from main loop");
                 return;
             }
             startCollectTime = System.nanoTime();
@@ -100,14 +103,14 @@ public class CollectEngine {
                 } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
                     curResult.getProbeSampleList().add(i, parseDisk(conf.getProbeConfigList().get(i).getDeviceName()));
                 }
-                logger.debug(curResult.getProbeSampleList().get(i).toString());
+                logger.log(FINE, curResult.getProbeSampleList().get(i).toString());
             }
             endCollectTime = System.nanoTime();
-            logger.info("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+            logger.log(INFO, "Collecting time: {0} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
 
             // saving results
             if (Thread.currentThread().isInterrupted()) {
-                logger.info("Received KILL signal, exiting from main loop");
+                logger.log(INFO, "Received KILL signal, exiting from main loop");
                 return;
             }
             if (prevResult != null) {
@@ -195,16 +198,16 @@ public class CollectEngine {
                         stmt.executeUpdate(END_TRANS);
                     }
                 } catch (SQLException ex) {
-                    logger.fatal("Error while saving samples to DB, aborting - {}", ex.getMessage());
+                    logger.log(SEVERE, "Error while saving samples to DB, aborting - {0}", ex.getMessage());
                     return;
                 }
                 endSaveTime = System.nanoTime();
-                logger.info("Saving time: {} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
+                logger.log(INFO, "Saving time: {0} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
             }
 
             // generating report
             if (Thread.currentThread().isInterrupted()) {
-                logger.info("Received KILL signal, exiting from main loop");
+                logger.log(INFO, "Received KILL signal, exiting from main loop");
                 return;
             }
             if (prevResult != null) {
@@ -272,19 +275,19 @@ public class CollectEngine {
                     // writing to file
                     bw.write(report);
                 } catch (IOException ex) {
-                    logger.fatal("I/O error while generating HTML report, aborting - {}", ex.getMessage());
+                    logger.log(SEVERE, "I/O error while generating HTML report, aborting - {0}", ex.getMessage());
                     return;
                 } catch (SQLException ex) {
-                    logger.fatal("Error while reading samples from DB, aborting - {}", ex.getMessage());
+                    logger.log(SEVERE, "Error while reading samples from DB, aborting - {0}", ex.getMessage());
                     return;
                 }
                 endReportTime = System.nanoTime();
-                logger.info("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+                logger.log(INFO, "Reporting time: {0} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
             }
 
             // janitor work, once a hour
             if (Thread.currentThread().isInterrupted()) {
-                logger.info("Received KILL signal, exiting from main loop");
+                logger.log(INFO, "Received KILL signal, exiting from main loop");
                 return;
             }
             if (prevResult != null) {
@@ -312,11 +315,11 @@ public class CollectEngine {
                             stmt.executeUpdate(VACUUM);
                         }
                     } catch (SQLException ex) {
-                        logger.fatal("Error while cleaning up DB, aborting - {}", ex.getMessage());
+                        logger.log(SEVERE, "Error while cleaning up DB, aborting - {0}", ex.getMessage());
                         return;
                     }
                     endCleanTime = System.nanoTime();
-                    logger.info("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
+                    logger.log(INFO, "Cleanup time: {0} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
                 }
             }
         }
