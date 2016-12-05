@@ -261,7 +261,6 @@ public class CollectEngine {
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
                         }
-
                     }
 
                     // replacing placeholders
