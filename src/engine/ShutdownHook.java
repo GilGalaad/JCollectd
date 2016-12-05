@@ -13,7 +13,7 @@ public class ShutdownHook extends Thread {
 
     @Override
     public void run() {
-        logger.log(INFO, "Shutdown sequence initiated...");
+        logger.log(INFO, "Received KILL signal, shutdown sequence initiated...");
         collectThread.interrupt();
         try {
             collectThread.join();
