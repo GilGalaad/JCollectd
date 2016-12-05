@@ -80,7 +80,7 @@ public class CollectEngine {
             // making room for new samples
             prevResult = curResult;
             curResult = new CollectResult(conf.getProbeConfigList().size());
-            long startCollectTime = 0, endCollectTime = 0, startSaveTime = 0, endSaveTime = 0, startReportTime = 0, endReportTime = 0;
+            long startCollectTime = 0, endCollectTime = 0, startSaveTime = 0, endSaveTime = 0, startReportTime = 0, endReportTime = 0, startCleanTime = 0, endCleanTime = 0;
 
             // collecting samples
             if (Thread.currentThread().isInterrupted()) {
@@ -294,6 +294,7 @@ public class CollectEngine {
                 if (cal.get(Calendar.MINUTE) == 0) {
                     cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
                     String fromTime = sdf.format(cal.getTime());
+                    startCleanTime = System.nanoTime();
                     try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate(PRAGMA);
@@ -314,6 +315,8 @@ public class CollectEngine {
                         logger.fatal("Error while cleaning up DB, aborting - {}", ex.getMessage());
                         return;
                     }
+                    endCleanTime = System.nanoTime();
+                    logger.info("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
                 }
             }
         }
