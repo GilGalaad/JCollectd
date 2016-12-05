@@ -221,9 +221,9 @@ public class CollectEngine {
 
                     // creating html from template
                     String report = readTemplate();
-                    report = report.replaceFirst("XXX_TITLE_XXX", conf.getHostname());
-                    report = report.replaceFirst("XXX_HOSTNAME_XXX", conf.getHostname());
-                    report = report.replaceFirst("XXX_DATE_XXX", sdfhr.format(curResult.getCollectTms()));
+                    report = report.replace("XXX_TITLE_XXX", conf.getHostname());
+                    report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
+                    report = report.replace("XXX_DATE_XXX", sdfhr.format(curResult.getCollectTms()));
 
                     // calculate reporting window
                     Calendar cal = Calendar.getInstance();
@@ -264,9 +264,9 @@ public class CollectEngine {
                     }
 
                     // replacing placeholders
-                    report = report.replaceFirst("XXX_JSDATA_XXX\n", jsDataSb.toString());
-                    report = report.replaceFirst("XXX_BODY_XXX\n", bodySb.toString());
-                    report = report.replaceFirst("XXX_TIMINGS_XXX",
+                    report = report.replace("XXX_JSDATA_XXX\n", jsDataSb.toString());
+                    report = report.replace("XXX_BODY_XXX\n", bodySb.toString());
+                    report = report.replace("XXX_TIMINGS_XXX",
                             String.format("Time spent collecting samples: %,dms, writing samples: %,dms, generating report: %,dms",
                                     (endCollectTime - startCollectTime) / 1000000L,
                                     (endSaveTime - startSaveTime) / 1000000L,
@@ -650,7 +650,7 @@ public class CollectEngine {
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_net_").append(interfaceName).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
-        return sb.toString().replaceFirst("REPLACEME", interfaceName);
+        return sb.toString().replace("REPLACEME", interfaceName);
     }
 
     private String writeHdd(Connection conn, String fromTime, String deviceName) throws SQLException, IOException {
@@ -700,6 +700,6 @@ public class CollectEngine {
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_hdd_").append(deviceName).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
-        return sb.toString().replaceFirst("REPLACEME", deviceName);
+        return sb.toString().replace("REPLACEME", deviceName);
     }
 }
