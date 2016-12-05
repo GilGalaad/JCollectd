@@ -53,11 +53,12 @@ The output report will be produced at the location specified in configuration fi
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
 
 Worths to say that:
-* the program logs only on the console (at `INFO` level) a brief recap of what has been parsed from configuration file during startup, and during shutdown; and any error (at `SEVERE` level) that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why. Of course you can modify the desider log level in the main class.
 * the memory footprint is as low as can be, 5 MB of heap size is enough to let the daemon run smoothly with a reasonable configuration.
+* the program logs only on the console (at `INFO` level) a brief recap of what has been parsed from configuration file during startup, and during shutdown; and any error (at `SEVERE` level) that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why. Of course you can modify the desider log level in the main class.
 * there is no need for a complex init script. You can start the daemon with the provdided command at boot, and a proper signal handler will ensure a clean shutdown in case of a `KILL` signal.
 
 ## TODO
 * Add support for FreeBSD platform.
 
-#####Contributions, critics, suggestions are always welcome. Cheers!
+
+####Contributions, critics, suggestions are always welcome. Cheers!
