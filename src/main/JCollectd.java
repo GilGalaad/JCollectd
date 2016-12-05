@@ -28,7 +28,7 @@ public class JCollectd {
 
     static {
         Locale.setDefault(Locale.US);
-        System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$td/%1$tm/%1$tY %1$tH:%1$tM:%1$tS.%1$tL %5$s] %5$s%n");
+        System.setProperty("java.util.logging.SimpleFormatter.format", "[%1$td/%1$tm/%1$tY %1$tH:%1$tM:%1$tS.%1$tL %4$s] %5$s%n");
         System.setProperty("java.util.logging.ConsoleHandler.level", "INFO");
         logger.setLevel(java.util.logging.Level.INFO);
     }
@@ -195,7 +195,7 @@ public class JCollectd {
                 logger.log(INFO, "Probe #{0} -> {1}, {2}", new Object[]{idx, ProbeType.MEM, getGraphSize(prop, idx)});
                 probeConfList.add(new ProbeConfig(ProbeType.MEM, getGraphSize(prop, idx)));
             } else if (propValue.equalsIgnoreCase("net")) {
-                logger.log(INFO, "Probe #{0} -> {1}, {2}, 3{}", new Object[]{idx, ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)});
+                logger.log(INFO, "Probe #{0} -> {1}, {2}, {3}", new Object[]{idx, ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)});
                 probeConfList.add(new ProbeConfig(ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
             } else if (propValue.equalsIgnoreCase("hdd")) {
                 logger.log(INFO, "Probe #{0} -> {1}, {2}, {3}", new Object[]{idx, ProbeType.HDD, getGraphSize(prop, idx), getProbeDevice(prop, idx)});
