@@ -2,7 +2,7 @@ package engine;
 
 public class JdbcUtils {
 
-    protected static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT, sample_tms TEXT, sample_value TEXT)";
+    protected static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS probe_samples (id_sample INTEGER PRIMARY KEY, probe_name TEXT NOT NULL, sample_tms TEXT NOT NULL, sample_value TEXT NOT NULL)";
     protected static final String CREATE_IDX_STMT = "CREATE UNIQUE INDEX IF NOT EXISTS idx_probe_samples ON probe_samples (probe_name, sample_tms)";
     protected static final String INS_STMT = "INSERT INTO probe_samples (probe_name, sample_tms, sample_value) VALUES (?,?,?)";
     protected static final String DEL_STMT = "DELETE FROM probe_samples WHERE sample_tms < ?";

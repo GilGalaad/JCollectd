@@ -4,6 +4,7 @@ import static engine.JdbcUtils.ANALYZE;
 import static engine.JdbcUtils.BEGIN_TRANS;
 import static engine.JdbcUtils.CREATE_IDX_STMT;
 import static engine.JdbcUtils.CREATE_TB_STMT;
+import static engine.JdbcUtils.DEL_STMT;
 import static engine.JdbcUtils.END_TRANS;
 import static engine.JdbcUtils.INS_STMT;
 import static engine.JdbcUtils.PRAGMA;
@@ -302,7 +303,7 @@ public class CollectEngine {
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate(PRAGMA);
                         }
-                        try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
+                        try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(DEL_STMT)) {
                             stmt.executeUpdate(BEGIN_TRANS);
                             pstmt.setString(1, fromTime);
                             pstmt.executeUpdate();
