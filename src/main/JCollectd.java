@@ -150,10 +150,10 @@ public class JCollectd {
                 int retentionHours = Integer.parseUnsignedInt(propValue.trim());
                 if (retentionHours >= conf.getReportHours()) {
                     logger.log(INFO, "Parameter retentionHours -> {0}", retentionHours);
-                    conf.setReportHours(retentionHours);
+                    conf.setRetentionHours(retentionHours);
                 } else {
                     logger.log(INFO, "Parameter retentionHours -> {0} (floored by reportHours)", conf.getReportHours());
-                    conf.setReportHours(conf.getReportHours());
+                    conf.setRetentionHours(conf.getReportHours());
                 }
             } catch (NumberFormatException ex) {
                 logger.log(SEVERE, "Parameter 'retentionHours' set to an illegal value, aborting");

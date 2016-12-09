@@ -63,9 +63,9 @@ public class CollectEngine {
     private CollectResult curResult;
 
     // dates
-    private final SimpleDateFormat sdfms = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-    private final SimpleDateFormat sdfhr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    private final SimpleDateFormat sdfSql = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+    private final SimpleDateFormat sdfJs = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private final SimpleDateFormat sdfHr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
@@ -125,7 +125,7 @@ public class CollectEngine {
                     }
                     try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
                         stmt.executeUpdate(BEGIN_TRANS);
-                        String sample_tms = sdfms.format(curResult.getCollectTms());
+                        String sample_tms = sdfSql.format(curResult.getCollectTms());
                         long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
                         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                             if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
@@ -224,13 +224,13 @@ public class CollectEngine {
                     String report = readTemplate();
                     report = report.replace("XXX_TITLE_XXX", conf.getHostname());
                     report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
-                    report = report.replace("XXX_DATE_XXX", sdfhr.format(curResult.getCollectTms()));
+                    report = report.replace("XXX_DATE_XXX", sdfHr.format(curResult.getCollectTms()));
 
                     // calculate reporting window
                     Calendar cal = Calendar.getInstance();
                     cal.setTime(curResult.getCollectTms());
                     cal.add(Calendar.HOUR_OF_DAY, -conf.getReportHours());
-                    String fromTime = sdf.format(cal.getTime());
+                    String fromTime = sdfSql.format(cal.getTime());
 
                     // samples
                     StringBuilder jsDataSb = new StringBuilder();
@@ -297,7 +297,7 @@ public class CollectEngine {
                 cal.setTime(curResult.getCollectTms());
                 if (cal.get(Calendar.MINUTE) == 0) {
                     cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
-                    String fromTime = sdf.format(cal.getTime());
+                    String fromTime = sdfSql.format(cal.getTime());
                     startCleanTime = System.nanoTime();
                     try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
                         try (Statement stmt = conn.createStatement()) {
@@ -476,7 +476,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdf.parse(rs.getString(1)));
+                        cal.setTime(sdfJs.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -524,7 +524,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdf.parse(rs.getString(1)));
+                        cal.setTime(sdfJs.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -571,7 +571,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdf.parse(rs.getString(1)));
+                        cal.setTime(sdfJs.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -621,7 +621,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdf.parse(rs.getString(1)));
+                        cal.setTime(sdfJs.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -671,7 +671,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdf.parse(rs.getString(1)));
+                        cal.setTime(sdfJs.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
