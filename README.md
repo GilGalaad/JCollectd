@@ -47,7 +47,7 @@ There is a simple sanity check on probe configuration (for example on mandatory 
 ## Usage
 Simply execute the jar in background, with a line like this (assuming `/jdk1.8` is your `$JAVA_HOME`)
 ```
-nohup /jdk1.8/bin/java -Xmx6m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
+nohup /jdk1.8/bin/java -XX:MaxMetaspaceSize=8m -Xmx6m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
 ```
 The output report will be produced at the location specified in configuration file, ready to be served by the httpd daemon of your choice. The result will be something like this:
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
