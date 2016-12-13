@@ -24,8 +24,9 @@ Supported general options are:
 * `dbpath`: the absolute path for sqlite database file (mandatory). The program checks that selected directory exists and it's writable by the current user; if the database file doesn't exists, it is created and initialized with required tables.
 * `webpath`: the absolute path for output html report (mandatory). The program checks that selected directory exists and it's writable by the current user.
 * `hostname`: the machine name (optional), used to customize html report. If not provided, the program tries to autodetect it; if it fails, it defaults to `localhost`.
-* `reportHours`: number of hours of sampling used to create graphs (optional). If not provided defaults to 12.
+* `reportHours`: number of hours of sampling used to create graphs (optional). If provided, it must be parsable as a positive integer, if not provided defaults to 12.
 * `retentionHours`: number of hours of data retention (optional). If provided, it must be parsable as a positive integer and must >= than `reportHours`, otherwhise defaults to `reportHours`.
+* `interval`: number of seconds between samplings (optional). If provided, it must be parsable as a positive integer, if not provided defaults to 60.
 
 After setting general option, you can configure an arbitrary number of probes. Each probe must be defined by a `probe_N_type` property, where N is a progressive number, starting by 1.
 Each probe definition can have one of the following values:
@@ -47,7 +48,7 @@ There is a simple sanity check on probe configuration (for example on mandatory 
 ## Usage
 Simply execute the jar in background, with a line like this (assuming `/jdk1.8` is your `$JAVA_HOME`)
 ```
-nohup /jdk1.8/bin/java -XX:MaxMetaspaceSize=8m -Xmx6m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
+nohup /jdk1.8/bin/java -XX:MaxMetaspaceSize=8m -Xms6m -Xmx6m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
 ```
 The output report will be produced at the location specified in configuration file, ready to be served by the httpd daemon of your choice. The result will be something like this:
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
@@ -59,6 +60,6 @@ Worths to say that:
 
 ## TODO
 * Add support for FreeBSD platform.
-* Maybe make the sampling rate (currently 60 seconds) user configurable.
+* ~~Make the sampling rate (currently 60 seconds) user configurable.~~ Done.
 
 ####Contributions, critics, suggestions are always welcome. Cheers!
