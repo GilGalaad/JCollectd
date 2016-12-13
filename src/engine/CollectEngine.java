@@ -56,6 +56,7 @@ import static main.JCollectd.prettyPrint;
 public class CollectEngine {
 
     private final CollectConfig conf;
+    private final String connectionString;
     private final long SAMPLING_INTERVAL = 60 * 1000L;
 
     // results
@@ -69,6 +70,7 @@ public class CollectEngine {
 
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
+        connectionString = "jdbc:sqlite:" + conf.getDbPath().toString();
     }
 
     public void run() {
@@ -117,7 +119,7 @@ public class CollectEngine {
             }
             if (prevResult != null) {
                 startSaveTime = System.nanoTime();
-                try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
+                try (Connection conn = DriverManager.getConnection(connectionString)) {
                     try (Statement stmt = conn.createStatement()) {
                         stmt.executeUpdate(PRAGMA);
                         stmt.executeUpdate(CREATE_TB_STMT);
@@ -215,7 +217,7 @@ public class CollectEngine {
             if (prevResult != null) {
                 startReportTime = System.nanoTime();
                 try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING});
-                        Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
+                        Connection conn = DriverManager.getConnection(connectionString)) {
                     try (Statement stmt = conn.createStatement()) {
                         stmt.executeUpdate(PRAGMA);
                     }
@@ -299,7 +301,7 @@ public class CollectEngine {
                     cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
                     String fromTime = sdfSql.format(cal.getTime());
                     startCleanTime = System.nanoTime();
-                    try (Connection conn = DriverManager.getConnection("jdbc:sqlite:" + conf.getDbPath().toString())) {
+                    try (Connection conn = DriverManager.getConnection(connectionString)) {
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate(PRAGMA);
                         }
