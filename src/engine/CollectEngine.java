@@ -81,7 +81,6 @@ public class CollectEngine {
             try {
                 Thread.sleep(samplingInterval - (System.currentTimeMillis() % samplingInterval));
             } catch (InterruptedException ex) {
-                logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;
             }
 
@@ -92,7 +91,6 @@ public class CollectEngine {
 
             // collecting samples
             if (Thread.currentThread().isInterrupted()) {
-                logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;
             }
             startCollectTime = System.nanoTime();
@@ -115,7 +113,6 @@ public class CollectEngine {
 
             // saving results
             if (Thread.currentThread().isInterrupted()) {
-                logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;
             }
             if (prevResult != null) {
@@ -212,7 +209,6 @@ public class CollectEngine {
 
             // generating report
             if (Thread.currentThread().isInterrupted()) {
-                logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;
             }
             if (prevResult != null) {
@@ -291,7 +287,6 @@ public class CollectEngine {
 
             // janitor work, once a hour
             if (Thread.currentThread().isInterrupted()) {
-                logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;
             }
             if (prevResult != null) {
