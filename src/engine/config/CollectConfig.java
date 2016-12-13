@@ -10,6 +10,7 @@ public class CollectConfig {
     private String hostname;
     private int reportHours;
     private int retentionHours;
+    private int interval;
     private ArrayList<ProbeConfig> probeConfigList;
 
     public Path getDbPath() {
@@ -50,6 +51,14 @@ public class CollectConfig {
 
     public void setRetentionHours(int retentionHours) {
         this.retentionHours = retentionHours;
+    }
+
+    public int getInterval() {
+        return interval;
+    }
+
+    public void setInterval(int interval) {
+        this.interval = interval;
     }
 
     public ArrayList<ProbeConfig> getProbeConfigList() {

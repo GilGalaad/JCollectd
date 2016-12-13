@@ -57,7 +57,7 @@ public class CollectEngine {
 
     private final CollectConfig conf;
     private final String connectionString;
-    private final long SAMPLING_INTERVAL = 60 * 1000L;
+    private final long samplingInterval;
 
     // results
     private CollectResult prevResult;
@@ -71,6 +71,7 @@ public class CollectEngine {
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
         connectionString = "jdbc:sqlite:" + conf.getDbPath().toString();
+        samplingInterval = conf.getInterval() * 1000L;
     }
 
     public void run() {
@@ -78,7 +79,7 @@ public class CollectEngine {
         while (true) {
             // waiting for next schedule
             try {
-                Thread.sleep(SAMPLING_INTERVAL - (System.currentTimeMillis() % SAMPLING_INTERVAL));
+                Thread.sleep(samplingInterval - (System.currentTimeMillis() % samplingInterval));
             } catch (InterruptedException ex) {
                 logger.log(INFO, "Acknowledged KILL signal, shutting down");
                 return;

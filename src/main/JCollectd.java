@@ -161,6 +161,21 @@ public class JCollectd {
             }
         }
 
+        propValue = (prop.getProperty("interval"));
+        if (isEmpty(propValue)) {
+            logger.log(INFO, "Parameter interval -> {0} (default)", 60);
+            conf.setInterval(60);
+        } else {
+            try {
+                int interval = Integer.parseUnsignedInt(propValue.trim());
+                logger.log(INFO, "Parameter interval -> {0}", interval);
+                conf.setInterval(interval);
+            } catch (NumberFormatException ex) {
+                logger.severe("Parameter 'interval' set to an illegal value, aborting");
+                System.exit(1);
+            }
+        }
+
         // parsing probes properties
         ArrayList<String> plist = new ArrayList<>();
         Enumeration<?> iter = prop.propertyNames();
