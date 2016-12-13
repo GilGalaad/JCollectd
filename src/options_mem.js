@@ -16,7 +16,8 @@ var options = {
         format: 'HH:mm'
     },
     vAxis: {
-        textStyle: {color: '#eeeeee'}
+        textStyle: {color: '#eeeeee'},
+        minValue: 0
     },
     tooltip: {
         textStyle: {color: '#082235'}
