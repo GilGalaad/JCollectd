@@ -293,7 +293,7 @@ public class CollectEngine {
                 // calculate reporting window
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(curResult.getCollectTms());
-                if (cal.get(Calendar.MINUTE) == 0) {
+                if (cal.get(Calendar.MINUTE) == 0 && cal.get(Calendar.SECOND) == 0) {
                     cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
                     String fromTime = sdfSql.format(cal.getTime());
                     startCleanTime = System.nanoTime();
