@@ -286,12 +286,24 @@ public class CollectEngine {
         LoadSample load = new LoadSample();
         if (System.getProperty("os.name").equals("Linux")) {
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/loadavg"))) {
-                String line = br.readLine();
-                String[] split = line.split("\\s+");
+                String[] split = br.readLine().split("\\s+");
                 load.setLoad1minute(new BigDecimal(split[0]));
                 load.setLoad5minute(new BigDecimal(split[1]));
                 load.setLoad15minute(new BigDecimal(split[2]));
             } catch (IOException ex) {
+                // can't happen
+            }
+        } else if (System.getProperty("os.name").equals("FreeBSD")) {
+            try {
+                Process p = new ProcessBuilder("sysctl", "vm.loadavg").redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String[] split = br.readLine().split("\\s+");
+                    load.setLoad1minute(new BigDecimal(split[2]));
+                    load.setLoad5minute(new BigDecimal(split[3]));
+                    load.setLoad15minute(new BigDecimal(split[4]));
+                }
+            } catch (IOException | InterruptedException ex) {
                 // can't happen
             }
         }
@@ -304,8 +316,7 @@ public class CollectEngine {
             // since the first word of line is 'cpu', numbers start from split[1]
             // 4th value is idle, 5th is iowait
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/stat"))) {
-                String line = br.readLine();
-                String[] split = line.split("\\s+");
+                String[] split = br.readLine().split("\\s+");
                 long total = 0;
                 for (int i = 1; i < split.length; i++) {
                     total += Long.parseLong(split[i]);
@@ -313,6 +324,24 @@ public class CollectEngine {
                 cpu.setTotalTime(total);
                 cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
             } catch (IOException ex) {
+                // can't happen
+            }
+        } else if (System.getProperty("os.name").equals("FreeBSD")) {
+            // since the first word of line is always the sysctl name
+            // values are: user, nice, system, interrupt, idle
+            try {
+                Process p = new ProcessBuilder("sysctl", "kern.cp_time").redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String[] split = br.readLine().split("\\s+");
+                    long total = 0;
+                    for (int i = 1; i < split.length; i++) {
+                        total += Long.parseLong(split[i]);
+                    }
+                    cpu.setTotalTime(total);
+                    cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
+                }
+            } catch (IOException | InterruptedException ex) {
                 // can't happen
             }
         }
@@ -324,37 +353,64 @@ public class CollectEngine {
         if (System.getProperty("os.name").equals("Linux")) {
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
                 String line;
+                long memTotal = 0, memFree = 0, buffers = 0, cached = 0, swapTotal = 0, swapFree = 0;
                 // values from /proc are in kibibyte, but we store in bytes
-                long memTotal = 0;
-                long memFree = 0;
-                long buffers = 0;
-                long cached = 0;
-                long swapTotal = 0;
-                long swapFree = 0;
                 while ((line = br.readLine()) != null) {
                     if (line.startsWith("MemTotal")) {
-                        String[] split = line.split("\\s+");
-                        memTotal = Long.parseLong(split[1]) * 1024L;
+                        memTotal = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     } else if (line.startsWith("MemFree")) {
-                        String[] split = line.split("\\s+");
-                        memFree = Long.parseLong(split[1]) * 1024L;
+                        memFree = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     } else if (line.startsWith("Buffers")) {
-                        String[] split = line.split("\\s+");
-                        buffers = Long.parseLong(split[1]) * 1024L;
+                        buffers = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     } else if (line.startsWith("Cached")) {
-                        String[] split = line.split("\\s+");
-                        cached = Long.parseLong(split[1]) * 1024L;
+                        cached = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     } else if (line.startsWith("SwapTotal")) {
-                        String[] split = line.split("\\s+");
-                        swapTotal = Long.parseLong(split[1]) * 1024L;
+                        swapTotal = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     } else if (line.startsWith("SwapFree")) {
-                        String[] split = line.split("\\s+");
-                        swapFree = Long.parseLong(split[1]) * 1024L;
+                        swapFree = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                     }
                 }
                 ret.setMemUsed(memTotal - memFree - buffers - cached);
                 ret.setSwapUsed(swapTotal - swapFree);
             } catch (IOException ex) {
+                // can't happen
+            }
+        } else if (System.getProperty("os.name").equals("FreeBSD")) {
+            try {
+                Process p = new ProcessBuilder("sysctl", "vm.stats.vm.v_page_size", "vm.stats.vm.v_active_count", "vm.stats.vm.v_wire_count", "kstat.zfs.misc.arcstats.size").redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String line;
+                    long pageSize = 0, active = 0, wired = 0, arc = 0;
+                    // values from sysctl are in pages, usually 4096 bytes each, but we store in bytes
+                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_page_size")) {
+                        pageSize = Long.parseLong(line.split("\\s+")[1]);
+                    }
+                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_active_count")) {
+                        active = Long.parseLong(line.split("\\s+")[1]);
+                    }
+                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_wire_count")) {
+                        wired = Long.parseLong(line.split("\\s+")[1]);
+                    }
+                    // value for arc is in raw bytes, ZFS module could not be loaded
+                    if ((line = br.readLine()) != null && line.startsWith("kstat.zfs.misc.arcstats.size") && !line.contains("unknown oid")) {
+                        arc = Long.parseLong(line.split("\\s+")[1]);
+                    }
+                    ret.setMemUsed(active * pageSize + wired * pageSize - arc);
+                }
+                p = new ProcessBuilder("sh", "-c", "swapinfo -k | grep -i total | cut -wf3").redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String line;
+                    // value is in kibibytes, but we store in bytes
+                    // swap could be off
+                    if ((line = br.readLine()) != null) {
+                        ret.setSwapUsed(Long.parseLong(line) * 1024L);
+                    } else {
+                        ret.setSwapUsed(0L);
+                    }
+                }
+            } catch (IOException | InterruptedException ex) {
                 // can't happen
             }
         }

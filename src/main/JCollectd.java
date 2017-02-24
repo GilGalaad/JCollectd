@@ -42,7 +42,7 @@ public class JCollectd {
     }
 
     private static CollectConfig init(String[] args) {
-        if (!System.getProperty("os.name").equals("Linux")) {
+        if (!System.getProperty("os.name").equals("Linux") && !System.getProperty("os.name").equals("FreeBSD")) {
             logger.log(SEVERE, "Unsupported platform: {0}, aborting", System.getProperty("os.name"));
             System.exit(1);
         }
