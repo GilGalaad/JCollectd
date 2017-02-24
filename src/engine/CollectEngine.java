@@ -129,71 +129,15 @@ public class CollectEngine {
                         long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
                         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                             if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                                LoadSample cs = (LoadSample) curResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "load1m");
-                                pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, cs.getLoad1minute().toString());
-                                pstmt.addBatch();
-                                pstmt.setString(1, "load5m");
-                                pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, cs.getLoad5minute().toString());
-                                pstmt.addBatch();
-                                pstmt.setString(1, "load15m");
-                                pstmt.setString(2, sample_tms);
-                                pstmt.setString(3, cs.getLoad15minute().toString());
-                                pstmt.addBatch();
+                                saveLoadAvg(pstmt, i, sample_tms);
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
-                                // cpu saved in percent, rounded to 1 significant digit
-                                CpuSample cs = (CpuSample) curResult.getProbeSampleList().get(i);
-                                CpuSample ps = (CpuSample) prevResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "cpu");
-                                pstmt.setString(2, sample_tms);
-                                long diffTotal = cs.getTotalTime() - ps.getTotalTime();
-                                long diffIdle = cs.getIdleTime() - ps.getIdleTime();
-                                BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
-                                pstmt.setString(3, cpu.toString());
-                                pstmt.addBatch();
+                                saveCpu(pstmt, i, sample_tms);
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
-                                // mem saved in mebibyte, rounded to nearest integer
-                                MemSample cs = (MemSample) curResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "mem");
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0).setScale(0, RoundingMode.HALF_UP);
-                                pstmt.setString(3, mem.toString());
-                                pstmt.addBatch();
-                                pstmt.setString(1, "swap");
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0).setScale(0, RoundingMode.HALF_UP);
-                                pstmt.setString(3, swap.toString());
-                                pstmt.addBatch();
+                                saveMem(pstmt, i, sample_tms);
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
-                                // net saved in kbyte/s, rounded to nearest integer
-                                NetSample cs = (NetSample) curResult.getProbeSampleList().get(i);
-                                NetSample ps = (NetSample) prevResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "net_tx_" + cs.getInterfaceName());
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-                                pstmt.setString(3, tx.toString());
-                                pstmt.addBatch();
-                                pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-                                pstmt.setString(3, rx.toString());
-                                pstmt.addBatch();
+                                saveNet(pstmt, i, sample_tms, elapsedMsec);
                             } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
-                                // net saved in mbyte/s, rounded to 1 significant digit
-                                HddSample cs = (HddSample) curResult.getProbeSampleList().get(i);
-                                HddSample ps = (HddSample) prevResult.getProbeSampleList().get(i);
-                                pstmt.setString(1, "hdd_read_" + cs.getDeviceName());
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-                                pstmt.setString(3, read.toString());
-                                pstmt.addBatch();
-                                pstmt.setString(1, "hdd_write_" + cs.getDeviceName());
-                                pstmt.setString(2, sample_tms);
-                                BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-                                pstmt.setString(3, write.toString());
-                                pstmt.addBatch();
+                                saveHdd(pstmt, i, sample_tms, elapsedMsec);
                             }
                         }
                         pstmt.executeBatch();
@@ -236,27 +180,27 @@ public class CollectEngine {
                     StringBuilder bodySb = new StringBuilder();
                     for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
                         if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                            jsDataSb.append(writeLoad(conn, fromTime));
+                            jsDataSb.append(writeLoadJsData(conn, fromTime));
                             bodySb.append("<div id=\"div_load\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
                         } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
-                            jsDataSb.append(writeCpu(conn, fromTime));
+                            jsDataSb.append(writeCpuJsData(conn, fromTime));
                             bodySb.append("<div id=\"div_cpu\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
                         } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
-                            jsDataSb.append(writeMem(conn, fromTime));
+                            jsDataSb.append(writeMemJsData(conn, fromTime));
                             bodySb.append("<div id=\"div_mem\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
                         } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
-                            jsDataSb.append(writeNet(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
+                            jsDataSb.append(writeNetJsData(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
                             bodySb.append("<div id=\"div_net_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
                         } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
-                            jsDataSb.append(writeHdd(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
+                            jsDataSb.append(writeHddJsData(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
                             bodySb.append("<div id=\"div_hdd_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
                             bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
                             bodySb.append("\"></div>").append(System.lineSeparator());
@@ -324,6 +268,20 @@ public class CollectEngine {
         }
     }
 
+    private String readTemplate() throws IOException {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line).append(System.lineSeparator());
+            }
+            return sb.toString();
+        }
+    }
+
+    /*
+     * methods for parsing data from Operating System
+     */
     private LoadSample parseLoadAvg() {
         LoadSample load = new LoadSample();
         if (System.getProperty("os.name").equals("Linux")) {
@@ -366,7 +324,7 @@ public class CollectEngine {
         if (System.getProperty("os.name").equals("Linux")) {
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
                 String line;
-                // values in KiB
+                // values from /proc are in kibibyte, but we store in bytes
                 long memTotal = 0;
                 long memFree = 0;
                 long buffers = 0;
@@ -376,22 +334,22 @@ public class CollectEngine {
                 while ((line = br.readLine()) != null) {
                     if (line.startsWith("MemTotal")) {
                         String[] split = line.split("\\s+");
-                        memTotal = Long.parseLong(split[1]);
+                        memTotal = Long.parseLong(split[1]) * 1024L;
                     } else if (line.startsWith("MemFree")) {
                         String[] split = line.split("\\s+");
-                        memFree = Long.parseLong(split[1]);
+                        memFree = Long.parseLong(split[1]) * 1024L;
                     } else if (line.startsWith("Buffers")) {
                         String[] split = line.split("\\s+");
-                        buffers = Long.parseLong(split[1]);
+                        buffers = Long.parseLong(split[1]) * 1024L;
                     } else if (line.startsWith("Cached")) {
                         String[] split = line.split("\\s+");
-                        cached = Long.parseLong(split[1]);
+                        cached = Long.parseLong(split[1]) * 1024L;
                     } else if (line.startsWith("SwapTotal")) {
                         String[] split = line.split("\\s+");
-                        swapTotal = Long.parseLong(split[1]);
+                        swapTotal = Long.parseLong(split[1]) * 1024L;
                     } else if (line.startsWith("SwapFree")) {
                         String[] split = line.split("\\s+");
-                        swapFree = Long.parseLong(split[1]);
+                        swapFree = Long.parseLong(split[1]) * 1024L;
                     }
                 }
                 ret.setMemUsed(memTotal - memFree - buffers - cached);
@@ -447,18 +405,89 @@ public class CollectEngine {
         return ret;
     }
 
-    private String readTemplate() throws IOException {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-            return sb.toString();
-        }
+    /*
+     * methods for calculating values from raw samples, if necessary, and saving them into database
+     */
+    private void saveLoadAvg(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
+        LoadSample cs = (LoadSample) curResult.getProbeSampleList().get(i);
+        pstmt.setString(1, "load1m");
+        pstmt.setString(2, sample_tms);
+        pstmt.setString(3, cs.getLoad1minute().toString());
+        pstmt.addBatch();
+        pstmt.setString(1, "load5m");
+        pstmt.setString(2, sample_tms);
+        pstmt.setString(3, cs.getLoad5minute().toString());
+        pstmt.addBatch();
+        pstmt.setString(1, "load15m");
+        pstmt.setString(2, sample_tms);
+        pstmt.setString(3, cs.getLoad15minute().toString());
+        pstmt.addBatch();
     }
 
-    private String writeLoad(Connection conn, String fromTime) throws SQLException, IOException {
+    private void saveCpu(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
+        // cpu saved in percent, rounded to 1 significant digit
+        CpuSample cs = (CpuSample) curResult.getProbeSampleList().get(i);
+        CpuSample ps = (CpuSample) prevResult.getProbeSampleList().get(i);
+        pstmt.setString(1, "cpu");
+        pstmt.setString(2, sample_tms);
+        long diffTotal = cs.getTotalTime() - ps.getTotalTime();
+        long diffIdle = cs.getIdleTime() - ps.getIdleTime();
+        BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
+        pstmt.setString(3, cpu.toString());
+        pstmt.addBatch();
+    }
+
+    private void saveMem(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
+        // mem saved in mebibyte, rounded to nearest integer
+        MemSample cs = (MemSample) curResult.getProbeSampleList().get(i);
+        pstmt.setString(1, "mem");
+        pstmt.setString(2, sample_tms);
+        BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+        pstmt.setString(3, mem.toString());
+        pstmt.addBatch();
+        pstmt.setString(1, "swap");
+        pstmt.setString(2, sample_tms);
+        BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+        pstmt.setString(3, swap.toString());
+        pstmt.addBatch();
+    }
+
+    private void saveNet(PreparedStatement pstmt, int i, String sample_tms, long elapsedMsec) throws SQLException {
+        // net saved in kibibyte/s, rounded to nearest integer
+        NetSample cs = (NetSample) curResult.getProbeSampleList().get(i);
+        NetSample ps = (NetSample) prevResult.getProbeSampleList().get(i);
+        pstmt.setString(1, "net_tx_" + cs.getInterfaceName());
+        pstmt.setString(2, sample_tms);
+        BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+        pstmt.setString(3, tx.toString());
+        pstmt.addBatch();
+        pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
+        pstmt.setString(2, sample_tms);
+        BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+        pstmt.setString(3, rx.toString());
+        pstmt.addBatch();
+    }
+
+    private void saveHdd(PreparedStatement pstmt, int i, String sample_tms, long elapsedMsec) throws SQLException {
+        // net saved in mbyte/s, rounded to 1 significant digit
+        HddSample cs = (HddSample) curResult.getProbeSampleList().get(i);
+        HddSample ps = (HddSample) prevResult.getProbeSampleList().get(i);
+        pstmt.setString(1, "hdd_read_" + cs.getDeviceName());
+        pstmt.setString(2, sample_tms);
+        BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+        pstmt.setString(3, read.toString());
+        pstmt.addBatch();
+        pstmt.setString(1, "hdd_write_" + cs.getDeviceName());
+        pstmt.setString(2, sample_tms);
+        BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+        pstmt.setString(3, write.toString());
+        pstmt.addBatch();
+    }
+
+    /*
+     * methods for loading data from database, and writing it into javascript array
+     */
+    private String writeLoadJsData(Connection conn, String fromTime) throws SQLException, IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("google.charts.setOnLoadCallback(drawLoad);").append(System.lineSeparator());
         sb.append("function drawLoad() {").append(System.lineSeparator());
@@ -508,7 +537,7 @@ public class CollectEngine {
         return sb.toString();
     }
 
-    private String writeCpu(Connection conn, String fromTime) throws SQLException, IOException {
+    private String writeCpuJsData(Connection conn, String fromTime) throws SQLException, IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("google.charts.setOnLoadCallback(drawCpu);").append(System.lineSeparator());
         sb.append("function drawCpu() {").append(System.lineSeparator());
@@ -554,7 +583,7 @@ public class CollectEngine {
         return sb.toString();
     }
 
-    private String writeMem(Connection conn, String fromTime) throws SQLException, IOException {
+    private String writeMemJsData(Connection conn, String fromTime) throws SQLException, IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("google.charts.setOnLoadCallback(drawMem);").append(System.lineSeparator());
         sb.append("function drawMem() {").append(System.lineSeparator());
@@ -602,7 +631,7 @@ public class CollectEngine {
         return sb.toString();
     }
 
-    private String writeNet(Connection conn, String fromTime, String interfaceName) throws SQLException, IOException {
+    private String writeNetJsData(Connection conn, String fromTime, String interfaceName) throws SQLException, IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("google.charts.setOnLoadCallback(drawNet_").append(interfaceName).append(");").append(System.lineSeparator());
         sb.append("function drawNet_").append(interfaceName).append("() {").append(System.lineSeparator());
@@ -652,7 +681,7 @@ public class CollectEngine {
         return sb.toString().replace("REPLACEME", interfaceName);
     }
 
-    private String writeHdd(Connection conn, String fromTime, String deviceName) throws SQLException, IOException {
+    private String writeHddJsData(Connection conn, String fromTime, String deviceName) throws SQLException, IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("google.charts.setOnLoadCallback(drawHdd_").append(deviceName).append(");").append(System.lineSeparator());
         sb.append("function drawHdd_").append(deviceName).append("() {").append(System.lineSeparator());
@@ -701,4 +730,5 @@ public class CollectEngine {
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString().replace("REPLACEME", deviceName);
     }
+
 }
