@@ -5,9 +5,9 @@ It has simplicity on his mind: no dependencies except Java 8, just one Jar file,
 
 The program does the following:
 * reads the configuration file
-* collect system informations reading `/proc` virtual filesystem
+* collects system informations reading `/proc` virtual filesystem on Linux, or via `sysctl` on FreeBSD
 * writes collected samples into a [sqlite](https://www.sqlite.org/) database
-* extracts samples from the last N hours and creates a report html file using [Google Charts](https://developers.google.com/chart/)
+* extracts samples from the last N hours and creates an html report, with nice graphs featured by [Google Charts](https://developers.google.com/chart/)
 * rinse and repeat until stopped
 
 ## Build and installation
@@ -16,7 +16,7 @@ Build is done via [Apache Ant](http://ant.apache.org/)
 $ ant -f build-jar.xml clean dist
 ```
 A single file `JCollectd.jar` will be produced into `dist/` directory. Copy it whenever you want.
-Original `build.xml` file and `nbproject/` directory are provided, in case you want to open the project in Netbeans IDE.
+Original `build.xml` file and `nbproject/` directory are provided, in case you want to open the project in [Netbeans IDE](https://netbeans.org/).
 
 ## Configuration
 A sample configuration file is included in `artifacts/` directory. Configuration file must be a standard Java property file. 
@@ -55,6 +55,7 @@ The output report will be produced at the location specified in configuration fi
 
 Worths to say that:
 * the memory footprint is as low as can be, 6 MB of heap size (which is the minimum allowed by Java) is enough to let the daemon run with a reasonable configuration, but you may want to limiting maximum heap size to something more (like 32m) to alleviate pressure on garbage collection.
+* even with a very low heap, some memory will be consumed by internal mechanisms of sqlite memory allocation, this will be native memory and cannot be tuned via Java parameters.
 * the program logs only on the console (at `INFO` level) a brief recap of what has been parsed from configuration file during startup, and during shutdown; and any error (at `SEVERE` level) that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why. Of course you can modify the desired log level in the main class.
 * there is no need for a complex init script. You can start the daemon with the provdided command at boot, and a proper signal handler will ensure a clean shutdown in case of a `KILL` signal.
 
