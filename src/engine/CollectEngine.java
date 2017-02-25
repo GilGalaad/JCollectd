@@ -435,6 +435,21 @@ public class CollectEngine {
             } catch (IOException ex) {
                 // can't happen
             }
+        } else if (System.getProperty("os.name").equals("FreeBSD")) {
+            try {
+                Process p = new ProcessBuilder("sh", "-c", "netstat -i -b -n -I " + interfaceName + " | grep Link").redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String line;
+                    if ((line = br.readLine()) != null) {
+                        String[] split = line.split("\\s+");
+                        ret.setRxBytes(Long.parseLong(split[7]));
+                        ret.setTxBytes(Long.parseLong(split[10]));
+                    }
+                }
+            } catch (IOException | InterruptedException ex) {
+                // can't happen
+            }
         }
         return ret;
     }
