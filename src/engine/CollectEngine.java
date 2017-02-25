@@ -383,6 +383,7 @@ public class CollectEngine {
                     String line;
                     long pageSize = 0, active = 0, wired = 0, arc = 0;
                     // values from sysctl are in pages, usually 4096 bytes each, but we store in bytes
+                    // sysctl sould always return a number or rows equal to the number of values requested, even in case of unknown oid
                     if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_page_size")) {
                         pageSize = Long.parseLong(line.split("\\s+")[1]);
                     }
@@ -403,11 +404,8 @@ public class CollectEngine {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                     String line;
                     // value is in kibibytes, but we store in bytes
-                    // swap could be off
                     if ((line = br.readLine()) != null) {
                         ret.setSwapUsed(Long.parseLong(line) * 1024L);
-                    } else {
-                        ret.setSwapUsed(0L);
                     }
                 }
             } catch (IOException | InterruptedException ex) {
@@ -431,6 +429,7 @@ public class CollectEngine {
                     String[] split = line.split("\\s+");
                     ret.setRxBytes(Long.parseLong(split[1]));
                     ret.setTxBytes(Long.parseLong(split[9]));
+                    break;
                 }
             } catch (IOException ex) {
                 // can't happen
