@@ -580,7 +580,7 @@ public class CollectEngine {
                     }
                     sb.append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
                     sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
@@ -628,7 +628,7 @@ public class CollectEngine {
                     }
                     sb.append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
                     sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
@@ -675,7 +675,7 @@ public class CollectEngine {
                     }
                     sb.append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
                     sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
@@ -725,7 +725,7 @@ public class CollectEngine {
                     }
                     sb.append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
                     sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
@@ -775,7 +775,7 @@ public class CollectEngine {
                     }
                     sb.append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH) + 1).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
                     sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
