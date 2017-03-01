@@ -65,7 +65,6 @@ public class CollectEngine {
 
     // dates
     private final SimpleDateFormat sdfSql = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final SimpleDateFormat sdfJs = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     private final SimpleDateFormat sdfHr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
     public CollectEngine(CollectConfig conf) {
@@ -573,7 +572,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdfJs.parse(rs.getString(1)));
+                        cal.setTime(sdfSql.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -621,7 +620,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdfJs.parse(rs.getString(1)));
+                        cal.setTime(sdfSql.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -668,7 +667,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdfJs.parse(rs.getString(1)));
+                        cal.setTime(sdfSql.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -718,7 +717,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdfJs.parse(rs.getString(1)));
+                        cal.setTime(sdfSql.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
@@ -768,7 +767,7 @@ public class CollectEngine {
                 Calendar cal = Calendar.getInstance();
                 while (rs.next()) {
                     try {
-                        cal.setTime(sdfJs.parse(rs.getString(1)));
+                        cal.setTime(sdfSql.parse(rs.getString(1)));
                     } catch (ParseException ex) {
                         // can't happen, but just in case we skip the line
                         continue;
