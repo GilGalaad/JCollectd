@@ -44,7 +44,7 @@ The produced report is fully HTML5 compliant, and features a flowing, responsive
 Probes `net` and `hdd` needs an additional mandatory property to be defined: `probe_N_device`, with the name of the network interface or the block device you want to be sampled, (e.g. `probe_5_device=eth0`).
 
 `hdd` probe supports the aggregation of devices, with an undescore separated list of devices to be aggregated (e.g. `probe_5_device=sda_sdb_sdc` in case you have a 3-disk RAID5).
-This is done mainly because while Linux provides I/O totals for `mdadm` raid arrays, FreeBSD provides I/O bandwidth, but not totals, if you are using ZFS; So we must go a bit lower level and do some math.
+This is done mainly because while Linux provides I/O totals for `mdadm` raid arrays, FreeBSD provides I/O bandwidth but not totals for ZFS `zpools`. So we must go a bit lower level and do some math.
 
 There is a simple sanity check on probe configuration (for example on mandatory parameters, and probe numbering), but I am sure you can shoot yourself in the leg if you try enough.
 
