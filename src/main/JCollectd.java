@@ -213,8 +213,8 @@ public class JCollectd {
                 logger.log(INFO, "Probe #{0} -> {1}, {2}, {3}", new Object[]{idx, ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)});
                 probeConfList.add(new ProbeConfig(ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
             } else if (propValue.equalsIgnoreCase("hdd")) {
-                logger.log(INFO, "Probe #{0} -> {1}, {2}, {3}", new Object[]{idx, ProbeType.HDD, getGraphSize(prop, idx), getProbeDevice(prop, idx)});
-                probeConfList.add(new ProbeConfig(ProbeType.HDD, getGraphSize(prop, idx), getProbeDevice(prop, idx)));
+                logger.log(INFO, "Probe #{0} -> {1}, {2}, {3}", new Object[]{idx, ProbeType.HDD, getGraphSize(prop, idx), getProbeDeviceList(prop, idx)});
+                probeConfList.add(new ProbeConfig(ProbeType.HDD, getGraphSize(prop, idx), getProbeDeviceList(prop, idx)));
             } else {
                 logger.log(SEVERE, "Unsupported probe #{0} type: {1}, aborting", new Object[]{idx, propValue});
                 System.exit(1);
@@ -243,6 +243,17 @@ public class JCollectd {
             System.exit(1);
         } else {
             return device.trim();
+        }
+        return null;
+    }
+
+    private static String getProbeDeviceList(Properties prop, int idx) {
+        String device = prop.getProperty("probe_" + idx + "_device");
+        if (isEmpty(device) || isEmpty(device.replaceAll("_", ""))) {
+            logger.log(SEVERE, "Illegal probe list: probe #{0} requires mandatory device name, aborting", idx);
+            System.exit(1);
+        } else {
+            return device.trim().replaceAll("\\s", "");
         }
         return null;
     }

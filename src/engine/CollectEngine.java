@@ -50,6 +50,7 @@ import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
+import static main.JCollectd.isEmpty;
 import static main.JCollectd.logger;
 import static main.JCollectd.prettyPrint;
 
@@ -392,7 +393,7 @@ public class CollectEngine {
                     if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_wire_count")) {
                         wired = Long.parseLong(line.split("\\s+")[1]);
                     }
-                    // value for arc is in raw bytes, ZFS module could not be loaded
+                    // value for arc is in raw bytes, ZFS module could be not loaded
                     if ((line = br.readLine()) != null && line.startsWith("kstat.zfs.misc.arcstats.size") && !line.contains("unknown oid")) {
                         arc = Long.parseLong(line.split("\\s+")[1]);
                     }
@@ -455,22 +456,48 @@ public class CollectEngine {
     private HddSample parseDisk(String deviceName) {
         HddSample ret = new HddSample();
         ret.setDeviceName(deviceName);
+        String[] devList = deviceName.split("_");
+        long readBytes = 0, writeBytes = 0;
         if (System.getProperty("os.name").equals("Linux")) {
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/diskstats"))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     line = line.trim();
                     String[] split = line.split("\\s+");
-                    if (!split[2].equals(deviceName)) {
-                        continue;
+                    for (String dev : devList) {
+                        if (!isEmpty(dev) && split[2].equals(dev.trim())) {
+                            // values in 512 bytes sectors
+                            readBytes += Long.parseLong(split[2 + 3]) * 512L;
+                            writeBytes += Long.parseLong(split[2 + 7]) * 512L;
+                        }
                     }
-                    ret.setReadBytes(Long.parseLong(split[2 + 3]) * 512L);
-                    ret.setWriteBytes(Long.parseLong(split[2 + 7]) * 512L);
                 }
             } catch (IOException ex) {
                 // can't happen
             }
+        } else if (System.getProperty("os.name").equals("FreeBSD")) {
+            try {
+                Process p = new ProcessBuilder("sh", "-c", "iostat -Ixd " + deviceName.replaceAll("_", " ")).redirectErrorStream(true).start();
+                p.waitFor();
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        String[] split = line.split("\\s+");
+                        for (String dev : devList) {
+                            if (!isEmpty(dev) && split[0].equals(dev.trim())) {
+                                // values in kibibytes
+                                readBytes += (new BigDecimal(split[3]).multiply(new BigDecimal(1024)).setScale(0, RoundingMode.HALF_UP)).longValue();
+                                writeBytes += (new BigDecimal(split[4]).multiply(new BigDecimal(1024)).setScale(0, RoundingMode.HALF_UP)).longValue();
+                            }
+                        }
+                    }
+                }
+            } catch (IOException | InterruptedException ex) {
+                // can't happen
+            }
         }
+        ret.setReadBytes(readBytes);
+        ret.setWriteBytes(writeBytes);
         return ret;
     }
 
