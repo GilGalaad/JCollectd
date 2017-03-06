@@ -39,6 +39,7 @@ Each probe definition can have one of the following values:
 Each probe can have an optional property `probe_N_size` which can assume the following values:
 * `full`: for a full width chart (which is the default)
 * `half`: for a (guess what!) half width chart
+
 The produced report is fully HTML5 compliant, and features a flowing, responsive layout. You can play with with progressive numbers and sizes to produce your ideal layout. To be mobile-friendly, graphs will be all drawn at full width on smaller resolution devices.
 
 Probes `net` and `hdd` needs an additional mandatory property to be defined: `probe_N_device`, with the name of the network interface or the block device you want to be sampled, (e.g. `probe_5_device=eth0`).
