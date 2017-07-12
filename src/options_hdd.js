@@ -16,10 +16,11 @@ var options = {
         format: 'HH:mm'
     },
     vAxis: {
-        textStyle: {color: '#eeeeee'}
+        textStyle: {color: '#eeeeee'},
+		format: 'decimal'
     },
     tooltip: {
-        textStyle: {color: '#082235'}
+        textStyle: {color: '#162e40'}
     },
     animation: {
         duration: 500,

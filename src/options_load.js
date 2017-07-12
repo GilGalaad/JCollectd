@@ -21,7 +21,7 @@ var options = {
         minValue: 0
     },
     tooltip: {
-        textStyle: {color: '#082235'}
+        textStyle: {color: '#162e40'}
     },
     animation: {
         duration: 500,

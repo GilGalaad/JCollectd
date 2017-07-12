@@ -17,10 +17,11 @@ var options = {
     },
     vAxis: {
         textStyle: {color: '#eeeeee'},
+		format: 'decimal',
         minValue: 0
     },
     tooltip: {
-        textStyle: {color: '#082235'}
+        textStyle: {color: '#162e40'}
     },
     animation: {
         duration: 500,
