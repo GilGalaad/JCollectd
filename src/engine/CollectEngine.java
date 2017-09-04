@@ -436,7 +436,7 @@ public class CollectEngine {
             }
         } else if (System.getProperty("os.name").equals("FreeBSD")) {
             try {
-                Process p = new ProcessBuilder("sh", "-c", "netstat -i -b -n -I " + interfaceName + " | grep Link").redirectErrorStream(true).start();
+                Process p = new ProcessBuilder("sh", "-c", "netstat -b -n -I " + interfaceName + " | grep Link").redirectErrorStream(true).start();
                 p.waitFor();
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                     String line;
