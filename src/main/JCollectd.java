@@ -53,10 +53,8 @@ public class JCollectd {
         }
 
         // loading parameters
-        FileInputStream in;
         Properties prop = new Properties();
-        try {
-            in = new FileInputStream(args[0]);
+        try (FileInputStream in = new FileInputStream(args[0])) {
             prop.load(in);
         } catch (IOException ex) {
             logger.log(SEVERE, "Configuration file not found or not readable at specified path, aborting");
