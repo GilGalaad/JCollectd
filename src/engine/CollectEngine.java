@@ -399,14 +399,16 @@ public class CollectEngine {
                     }
                     ret.setMemUsed(active * pageSize + wired * pageSize - arc);
                 }
-                p = new ProcessBuilder("sh", "-c", "swapinfo -k | grep -i total | cut -wf3").redirectErrorStream(true).start();
+                p = new ProcessBuilder("sh", "-c", "swapinfo -k | grep -vi device | grep -vi total | cut -wf3").redirectErrorStream(true).start();
                 p.waitFor();
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                     String line;
+                    long swap = 0;
                     // value is in kibibytes, but we store in bytes
-                    if ((line = br.readLine()) != null) {
-                        ret.setSwapUsed(Long.parseLong(line) * 1024L);
+                    while ((line = br.readLine()) != null) {
+                        swap += Long.parseLong(line) * 1024L;
                     }
+                    ret.setSwapUsed(swap);
                 }
             } catch (IOException | InterruptedException ex) {
                 // can't happen
