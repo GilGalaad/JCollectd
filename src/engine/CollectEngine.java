@@ -68,10 +68,19 @@ public class CollectEngine {
     private final SimpleDateFormat sdfSql = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
     private final SimpleDateFormat sdfHr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
+    // templates
+    private String templateHtml;
+    private String loadJs;
+    private String cpuJs;
+    private String memJs;
+    private String netJs;
+    private String hddJs;
+
     public CollectEngine(CollectConfig conf) {
         this.conf = conf;
         connectionString = "jdbc:sqlite:" + conf.getDbPath().toString();
         samplingInterval = conf.getInterval() * 1000L;
+        readTemplates();
     }
 
     public void run() {
@@ -79,7 +88,7 @@ public class CollectEngine {
         while (true) {
             // waiting for next schedule
             try {
-                Thread.sleep(samplingInterval - (System.currentTimeMillis() % samplingInterval));
+                Thread.sleep((samplingInterval - (System.currentTimeMillis() % samplingInterval)) % samplingInterval);
             } catch (InterruptedException ex) {
                 return;
             }
@@ -145,7 +154,7 @@ public class CollectEngine {
                     }
                 } catch (SQLException ex) {
                     logger.log(SEVERE, "Error while saving samples to DB, aborting - {0}", ex.getMessage());
-                    return;
+                    System.exit(1);
                 }
                 endSaveTime = System.nanoTime();
                 logger.log(FINE, "Saving time: {0} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
@@ -164,8 +173,7 @@ public class CollectEngine {
                     }
 
                     // creating html from template
-                    String report = readTemplate();
-                    report = report.replace("XXX_TITLE_XXX", conf.getHostname());
+                    String report = templateHtml.replace("XXX_TITLE_XXX", conf.getHostname());
                     report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
                     report = report.replace("XXX_DATE_XXX", sdfHr.format(curResult.getCollectTms()));
 
@@ -220,10 +228,10 @@ public class CollectEngine {
                     bw.write(report);
                 } catch (IOException ex) {
                     logger.log(SEVERE, "I/O error while generating HTML report, aborting - {0}", ex.getMessage());
-                    return;
+                    System.exit(1);
                 } catch (SQLException ex) {
                     logger.log(SEVERE, "Error while reading samples from DB, aborting - {0}", ex.getMessage());
-                    return;
+                    System.exit(1);
                 }
                 endReportTime = System.nanoTime();
                 logger.log(FINE, "Reporting time: {0} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
@@ -259,7 +267,7 @@ public class CollectEngine {
                         }
                     } catch (SQLException ex) {
                         logger.log(SEVERE, "Error while cleaning up DB, aborting - {0}", ex.getMessage());
-                        return;
+                        System.exit(1);
                     }
                     endCleanTime = System.nanoTime();
                     logger.log(FINE, "Cleanup time: {0} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
@@ -268,14 +276,56 @@ public class CollectEngine {
         }
     }
 
-    private String readTemplate() throws IOException {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
+    private void readTemplates() {
+        logger.log(INFO, "Reading HTML and JS templates");
+        StringBuilder sb;
+        String line;
+        try {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                templateHtml = sb.toString();
             }
-            return sb.toString();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_load.js"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                loadJs = sb.toString();
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_cpu.js"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                cpuJs = sb.toString();
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_mem.js"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                memJs = sb.toString();
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_net.js"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                netJs = sb.toString();
+            }
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_hdd.js"), "UTF-8"))) {
+                sb = new StringBuilder();
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append(System.lineSeparator());
+                }
+                hddJs = sb.toString();
+            }
+        } catch (IOException ex) {
+            logger.log(SEVERE, "I/O error while reading templates, aborting - {0}", ex.getMessage());
+            System.exit(1);
         }
     }
 
@@ -622,12 +672,7 @@ public class CollectEngine {
             }
         }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_load.js"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-        }
+        sb.append(loadJs);
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_load'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
@@ -668,12 +713,7 @@ public class CollectEngine {
             }
         }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_cpu.js"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-        }
+        sb.append(cpuJs);
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_cpu'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
@@ -716,12 +756,7 @@ public class CollectEngine {
             }
         }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_mem.js"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-        }
+        sb.append(memJs);
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_mem'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
@@ -766,12 +801,7 @@ public class CollectEngine {
             }
         }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_net.js"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-        }
+        sb.append(netJs);
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_net_").append(interfaceName).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
@@ -816,12 +846,7 @@ public class CollectEngine {
             }
         }
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_hdd.js"), "UTF-8"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append(System.lineSeparator());
-            }
-        }
+        sb.append(hddJs);
 
         sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_hdd_").append(deviceName).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());

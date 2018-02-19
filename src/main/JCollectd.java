@@ -33,7 +33,7 @@ public class JCollectd {
         logger.setLevel(java.util.logging.Level.INFO);
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         CollectConfig conf = init(args);
         Thread sh = new ShutdownHook(Thread.currentThread());
         Runtime.getRuntime().addShutdownHook(sh);
@@ -134,7 +134,7 @@ public class JCollectd {
                 logger.log(INFO, "Parameter reportHours -> {0}", reportHours);
                 conf.setReportHours(reportHours);
             } catch (NumberFormatException ex) {
-                logger.severe("Parameter 'reportHours' set to an illegal value, aborting");
+                logger.log(SEVERE, "Parameter 'reportHours' set to an illegal value, aborting");
                 System.exit(1);
             }
         }
@@ -169,7 +169,7 @@ public class JCollectd {
                 logger.log(INFO, "Parameter interval -> {0}", interval);
                 conf.setInterval(interval);
             } catch (NumberFormatException ex) {
-                logger.severe("Parameter 'interval' set to an illegal value, aborting");
+                logger.log(SEVERE, "Parameter 'interval' set to an illegal value, aborting");
                 System.exit(1);
             }
         }
