@@ -1,33 +1,34 @@
 package engine;
 
-import static engine.JdbcUtils.ANALYZE;
-import static engine.JdbcUtils.BEGIN_TRANS;
-import static engine.JdbcUtils.CREATE_IDX_STMT;
-import static engine.JdbcUtils.CREATE_TB_STMT;
-import static engine.JdbcUtils.DEL_STMT;
-import static engine.JdbcUtils.END_TRANS;
-import static engine.JdbcUtils.INS_STMT;
-import static engine.JdbcUtils.PRAGMA;
-import static engine.JdbcUtils.SELECT_CPU;
-import static engine.JdbcUtils.SELECT_HDD;
-import static engine.JdbcUtils.SELECT_LOAD;
-import static engine.JdbcUtils.SELECT_MEM;
-import static engine.JdbcUtils.SELECT_NET;
-import static engine.JdbcUtils.VACUUM;
-import engine.config.CollectConfig;
-import engine.config.ProbeConfig;
-import engine.config.ProbeConfig.ProbeType;
-import engine.samples.CollectResult;
-import engine.samples.CpuSample;
-import engine.samples.HddSample;
-import engine.samples.LoadSample;
-import engine.samples.MemSample;
-import engine.samples.NetSample;
-import java.io.BufferedReader;
+import static engine.CommonUtils.HOUR_MS;
+import static engine.CommonUtils.prettyPrint;
+import static engine.ReportUtils.optsCpuJs;
+import static engine.ReportUtils.optsDiskJs;
+import static engine.ReportUtils.optsLoadJs;
+import static engine.ReportUtils.optsMemJs;
+import static engine.ReportUtils.optsNetJs;
+import static engine.ReportUtils.templateHtml;
+import engine.collect.CollectStrategy;
+import engine.collect.FreeBSDCollectStrategy;
+import engine.collect.LinuxCollectStrategy;
+import engine.config.CollectConfiguration;
+import static engine.config.CollectConfiguration.DbEngine.SQLITE;
+import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
+import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
+import engine.config.ProbeConfiguration;
+import engine.config.ProbeConfiguration.ProbeType;
+import engine.db.DatabaseStrategy;
+import engine.db.SqliteStrategy;
+import engine.db.TbProbeSeries;
+import engine.exception.ExecutionException;
+import engine.sample.CollectResult;
+import engine.sample.CpuRawSample;
+import engine.sample.DiskRawSample;
+import engine.sample.LoadRawSample;
+import engine.sample.MemRawSample;
+import engine.sample.NetRawSample;
 import java.io.BufferedWriter;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.Charset;
@@ -38,53 +39,62 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.INFO;
-import static java.util.logging.Level.SEVERE;
-import static main.JCollectd.isEmpty;
-import static main.JCollectd.logger;
-import static main.JCollectd.prettyPrint;
+import java.util.ArrayList;
+import java.util.Date;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CollectEngine {
 
-    private final CollectConfig conf;
-    private final String connectionString;
+    private static final Logger logger = LogManager.getLogger();
+
+    private final CollectConfiguration conf;
     private final long samplingInterval;
+    private final CollectStrategy collectStrategy;
+    private final DatabaseStrategy databaseStrategy;
 
     // results
     private CollectResult prevResult;
     private CollectResult curResult;
 
+    // timings
+    private long startCollectTime;
+    private long endCollectTime;
+    private long startPersistTime;
+    private long endPersistTime;
+    private long startReportTime;
+    private long endReportTime;
+    private long startCleanTime;
+    private long endCleanTime;
+    private Date lastMaintenance;
+
     // dates
-    private final SimpleDateFormat sdfSql = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-    private final SimpleDateFormat sdfHr = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+    private final SimpleDateFormat sdfHtml = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
-    // templates
-    private String templateHtml;
-    private String loadJs;
-    private String cpuJs;
-    private String memJs;
-    private String netJs;
-    private String hddJs;
-
-    public CollectEngine(CollectConfig conf) {
+    public CollectEngine(CollectConfiguration conf) {
         this.conf = conf;
-        connectionString = "jdbc:sqlite:" + conf.getDbPath().toString();
-        samplingInterval = conf.getInterval() * 1000L;
-        readTemplates();
+        this.samplingInterval = conf.getInterval() * 1000L;
+        lastMaintenance = new Date();
+
+        if (conf.getOs() == FREEBSD) {
+            collectStrategy = new FreeBSDCollectStrategy();
+        } else if (conf.getOs() == LINUX) {
+            collectStrategy = new LinuxCollectStrategy();
+        } else {
+            throw new UnsupportedOperationException(String.format("Unsupported Operating System: %s, aborting", conf.getOs()));
+        }
+
+        if (conf.getDbEngine() == SQLITE) {
+            databaseStrategy = new SqliteStrategy(conf);
+        } else {
+            throw new UnsupportedOperationException(String.format("Unsupported Database engine: %s, aborting", conf.getDbEngine()));
+        }
     }
 
-    public void run() {
-        logger.log(INFO, "Entering in main loop");
+    public void run() throws ExecutionException {
+        logger.info("Entering in main loop");
         while (true) {
             // waiting for next schedule
             try {
@@ -96,762 +106,389 @@ public class CollectEngine {
             // making room for new samples
             prevResult = curResult;
             curResult = new CollectResult(conf.getProbeConfigList().size());
-            long startCollectTime = 0, endCollectTime = 0, startSaveTime = 0, endSaveTime = 0, startReportTime = 0, endReportTime = 0, startCleanTime = 0, endCleanTime = 0;
+            if (logger.isDebugEnabled()) {
+                logger.debug("Worker thread wake up at {}", sdfHtml.format(curResult.getCollectTms()));
+            }
 
             // collecting samples
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
             startCollectTime = System.nanoTime();
-            for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-                if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                    curResult.getProbeSampleList().add(i, parseLoadAvg());
-                } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
-                    curResult.getProbeSampleList().add(i, parseCpu());
-                } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
-                    curResult.getProbeSampleList().add(i, parseMem());
-                } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
-                    curResult.getProbeSampleList().add(i, parseNet(conf.getProbeConfigList().get(i).getDeviceName()));
-                } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
-                    curResult.getProbeSampleList().add(i, parseDisk(conf.getProbeConfigList().get(i).getDeviceName()));
-                }
-                logger.log(FINER, curResult.getProbeSampleList().get(i).toString());
-            }
+            doCollect();
             endCollectTime = System.nanoTime();
-            logger.log(FINE, "Collecting time: {0} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+            }
 
-            // saving results
+            // persisting timeseries
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
             if (prevResult != null) {
-                startSaveTime = System.nanoTime();
-                try (Connection conn = DriverManager.getConnection(connectionString)) {
-                    try (Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(PRAGMA);
-                        stmt.executeUpdate(CREATE_TB_STMT);
-                        stmt.executeUpdate(CREATE_IDX_STMT);
-                    }
-                    try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
-                        stmt.executeUpdate(BEGIN_TRANS);
-                        String sample_tms = sdfSql.format(curResult.getCollectTms());
-                        long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
-                        for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-                            if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                                saveLoadAvg(pstmt, i, sample_tms);
-                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
-                                saveCpu(pstmt, i, sample_tms);
-                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
-                                saveMem(pstmt, i, sample_tms);
-                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
-                                saveNet(pstmt, i, sample_tms, elapsedMsec);
-                            } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
-                                saveHdd(pstmt, i, sample_tms, elapsedMsec);
-                            }
-                        }
-                        pstmt.executeBatch();
-                        stmt.executeUpdate(END_TRANS);
-                    }
-                } catch (SQLException ex) {
-                    logger.log(SEVERE, "Error while saving samples to DB, aborting - {0}", ex.getMessage());
-                    System.exit(1);
+                startPersistTime = System.nanoTime();
+                doPersist();
+                endPersistTime = System.nanoTime();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Persisting time: {} msec", prettyPrint((endPersistTime - startPersistTime) / 1000000L));
                 }
-                endSaveTime = System.nanoTime();
-                logger.log(FINE, "Saving time: {0} msec", prettyPrint((endSaveTime - startSaveTime) / 1000000L));
             }
 
             // generating report
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
-            if (prevResult != null) {
+            if (conf.getWebPath() != null && prevResult != null) {
                 startReportTime = System.nanoTime();
-                try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING});
-                        Connection conn = DriverManager.getConnection(connectionString)) {
-                    try (Statement stmt = conn.createStatement()) {
-                        stmt.executeUpdate(PRAGMA);
-                    }
-
-                    // creating html from template
-                    String report = templateHtml.replace("XXX_TITLE_XXX", conf.getHostname());
-                    report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
-                    report = report.replace("XXX_DATE_XXX", sdfHr.format(curResult.getCollectTms()));
-
-                    // calculate reporting window
-                    Calendar cal = Calendar.getInstance();
-                    cal.setTime(curResult.getCollectTms());
-                    cal.add(Calendar.HOUR_OF_DAY, -conf.getReportHours());
-                    String fromTime = sdfSql.format(cal.getTime());
-
-                    // samples
-                    StringBuilder jsDataSb = new StringBuilder();
-                    StringBuilder bodySb = new StringBuilder();
-                    for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-                        if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.LOAD) {
-                            jsDataSb.append(writeLoadJsData(conn, fromTime));
-                            bodySb.append("<div id=\"div_load\" class=\"chart-container ");
-                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
-                            bodySb.append("\"></div>").append(System.lineSeparator());
-                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.CPU) {
-                            jsDataSb.append(writeCpuJsData(conn, fromTime));
-                            bodySb.append("<div id=\"div_cpu\" class=\"chart-container ");
-                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
-                            bodySb.append("\"></div>").append(System.lineSeparator());
-                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.MEM) {
-                            jsDataSb.append(writeMemJsData(conn, fromTime));
-                            bodySb.append("<div id=\"div_mem\" class=\"chart-container ");
-                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
-                            bodySb.append("\"></div>").append(System.lineSeparator());
-                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.NET) {
-                            jsDataSb.append(writeNetJsData(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
-                            bodySb.append("<div id=\"div_net_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
-                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
-                            bodySb.append("\"></div>").append(System.lineSeparator());
-                        } else if (conf.getProbeConfigList().get(i).getPtype() == ProbeType.HDD) {
-                            jsDataSb.append(writeHddJsData(conn, fromTime, conf.getProbeConfigList().get(i).getDeviceName()));
-                            bodySb.append("<div id=\"div_hdd_").append(conf.getProbeConfigList().get(i).getDeviceName()).append("\" class=\"chart-container ");
-                            bodySb.append(conf.getProbeConfigList().get(i).getGsize() == ProbeConfig.GraphSize.FULL_SIZE ? "full-size" : "half-size");
-                            bodySb.append("\"></div>").append(System.lineSeparator());
-                        }
-                    }
-
-                    // replacing placeholders
-                    report = report.replace("XXX_JSDATA_XXX\n", jsDataSb.toString());
-                    report = report.replace("XXX_BODY_XXX\n", bodySb.toString());
-                    report = report.replace("XXX_TIMINGS_XXX",
-                            String.format("Time spent collecting samples: %,dms, writing samples: %,dms, generating report: %,dms",
-                                    (endCollectTime - startCollectTime) / 1000000L,
-                                    (endSaveTime - startSaveTime) / 1000000L,
-                                    (System.nanoTime() - startReportTime) / 1000000L));
-
-                    // writing to file
-                    bw.write(report);
-                } catch (IOException ex) {
-                    logger.log(SEVERE, "I/O error while generating HTML report, aborting - {0}", ex.getMessage());
-                    System.exit(1);
-                } catch (SQLException ex) {
-                    logger.log(SEVERE, "Error while reading samples from DB, aborting - {0}", ex.getMessage());
-                    System.exit(1);
-                }
+                doReport();
                 endReportTime = System.nanoTime();
-                logger.log(FINE, "Reporting time: {0} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+                }
             }
 
             // janitor work, once a hour
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
-            if (prevResult != null) {
-                // calculate reporting window
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(curResult.getCollectTms());
-                if (cal.get(Calendar.MINUTE) == 0 && cal.get(Calendar.SECOND) == 0) {
-                    cal.add(Calendar.HOUR_OF_DAY, -conf.getRetentionHours());
-                    String fromTime = sdfSql.format(cal.getTime());
-                    startCleanTime = System.nanoTime();
-                    try (Connection conn = DriverManager.getConnection(connectionString)) {
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate(PRAGMA);
-                        }
-                        try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(DEL_STMT)) {
-                            stmt.executeUpdate(BEGIN_TRANS);
-                            pstmt.setString(1, fromTime);
-                            pstmt.executeUpdate();
-                            stmt.executeUpdate(END_TRANS);
-                        }
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate(ANALYZE);
-                        }
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate(VACUUM);
-                        }
-                    } catch (SQLException ex) {
-                        logger.log(SEVERE, "Error while cleaning up DB, aborting - {0}", ex.getMessage());
-                        System.exit(1);
-                    }
-                    endCleanTime = System.nanoTime();
-                    logger.log(FINE, "Cleanup time: {0} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
+            if (prevResult != null && (curResult.getCollectTms().getTime() - lastMaintenance.getTime()) >= (HOUR_MS)) {
+                lastMaintenance = curResult.getCollectTms();
+                startCleanTime = System.nanoTime();
+                doMaintenance();
+                endCleanTime = System.nanoTime();
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
                 }
             }
         }
     }
 
-    private void readTemplates() {
-        logger.log(INFO, "Reading HTML and JS templates");
-        StringBuilder sb;
-        String line;
-        try {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/template.html"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                templateHtml = sb.toString();
+    // parsing data from Operating System
+    private void doCollect() {
+        for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
+            if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectLoadAvg());
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectCpu());
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectMem());
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectNet(conf.getProbeConfigList().get(i).getDevice()));
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectDisk(conf.getProbeConfigList().get(i).getDevice()));
+            } else {
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
             }
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_load.js"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                loadJs = sb.toString();
+            if (logger.isTraceEnabled()) {
+                logger.trace(curResult.getProbeRawSampleList().get(i).toString());
             }
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_cpu.js"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                cpuJs = sb.toString();
+        }
+    }
+
+    // persisting timeseries
+    private void doPersist() throws ExecutionException {
+        ArrayList<TbProbeSeries> tmsList = rawSamplesToTimeseries();
+        try (Connection conn = databaseStrategy.getConnection()) {
+            databaseStrategy.prepareSchema(conn);
+            databaseStrategy.persistTimeseries(conn, tmsList);
+        } catch (SQLException ex) {
+            throw new ExecutionException(String.format("Error while saving samples to DB, aborting - %s", ex.getMessage()), ex);
+        }
+    }
+
+    // creating timeseries values from raw samples
+    private ArrayList<TbProbeSeries> rawSamplesToTimeseries() {
+        ArrayList<TbProbeSeries> series = new ArrayList<>();
+        for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
+            if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+                LoadRawSample cs = (LoadRawSample) curResult.getProbeRawSampleList().get(i);
+                TbProbeSeries s1 = new TbProbeSeries();
+                s1.setHostname(conf.getHostname());
+                s1.setProbeType("load1m");
+                s1.setDevice(null);
+                s1.setSampleTms(curResult.getCollectTms());
+                s1.setSampleValue(cs.getLoad1minute());
+                series.add(s1);
+                TbProbeSeries s2 = new TbProbeSeries();
+                s2.setHostname(conf.getHostname());
+                s2.setProbeType("load5m");
+                s2.setDevice(null);
+                s2.setSampleTms(curResult.getCollectTms());
+                s2.setSampleValue(cs.getLoad5minute());
+                series.add(s2);
+                TbProbeSeries s3 = new TbProbeSeries();
+                s3.setHostname(conf.getHostname());
+                s3.setProbeType("load15m");
+                s3.setDevice(null);
+                s3.setSampleTms(curResult.getCollectTms());
+                s3.setSampleValue(cs.getLoad15minute());
+                series.add(s3);
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+                // cpu saved in percent, rounded to 1 significant digit
+                CpuRawSample cs = (CpuRawSample) curResult.getProbeRawSampleList().get(i);
+                CpuRawSample ps = (CpuRawSample) prevResult.getProbeRawSampleList().get(i);
+                TbProbeSeries s = new TbProbeSeries();
+                s.setHostname(conf.getHostname());
+                s.setProbeType("cpu");
+                s.setDevice(null);
+                s.setSampleTms(curResult.getCollectTms());
+                long diffTotal = cs.getTotalTime() - ps.getTotalTime();
+                long diffIdle = cs.getIdleTime() - ps.getIdleTime();
+                BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
+                s.setSampleValue(cpu);
+                series.add(s);
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+                // mem saved in mebibyte, rounded to nearest integer
+                MemRawSample cs = (MemRawSample) curResult.getProbeRawSampleList().get(i);
+                TbProbeSeries s1 = new TbProbeSeries();
+                s1.setHostname(conf.getHostname());
+                s1.setProbeType("mem");
+                s1.setDevice(null);
+                s1.setSampleTms(curResult.getCollectTms());
+                BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                s1.setSampleValue(mem);
+                series.add(s1);
+                TbProbeSeries s2 = new TbProbeSeries();
+                s2.setHostname(conf.getHostname());
+                s2.setProbeType("swap");
+                s2.setDevice(null);
+                s2.setSampleTms(curResult.getCollectTms());
+                BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                s2.setSampleValue(swap);
+                series.add(s2);
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+                // net saved in kibibyte/s, rounded to nearest integer
+                NetRawSample cs = (NetRawSample) curResult.getProbeRawSampleList().get(i);
+                NetRawSample ps = (NetRawSample) prevResult.getProbeRawSampleList().get(i);
+                long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
+                TbProbeSeries s1 = new TbProbeSeries();
+                s1.setHostname(conf.getHostname());
+                s1.setProbeType("net_tx");
+                s1.setDevice(cs.getInterfaceName());
+                s1.setSampleTms(curResult.getCollectTms());
+                BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+                s1.setSampleValue(tx);
+                series.add(s1);
+                TbProbeSeries s2 = new TbProbeSeries();
+                s2.setHostname(conf.getHostname());
+                s2.setProbeType("net_rx");
+                s2.setDevice(cs.getInterfaceName());
+                s2.setSampleTms(curResult.getCollectTms());
+                BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
+                s2.setSampleValue(rx);
+                series.add(s2);
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
+                // net saved in mbyte/s, rounded to 1 significant digit
+                DiskRawSample cs = (DiskRawSample) curResult.getProbeRawSampleList().get(i);
+                DiskRawSample ps = (DiskRawSample) prevResult.getProbeRawSampleList().get(i);
+                long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
+                TbProbeSeries s1 = new TbProbeSeries();
+                s1.setHostname(conf.getHostname());
+                s1.setProbeType("disk_read");
+                s1.setDevice(cs.getDeviceName());
+                s1.setSampleTms(curResult.getCollectTms());
+                BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+                s1.setSampleValue(read);
+                series.add(s1);
+                TbProbeSeries s2 = new TbProbeSeries();
+                s2.setHostname(conf.getHostname());
+                s2.setProbeType("disk_write");
+                s2.setDevice(cs.getDeviceName());
+                s2.setSampleTms(curResult.getCollectTms());
+                BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
+                s2.setSampleValue(write);
+                series.add(s2);
+            } else {
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
             }
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_mem.js"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                memJs = sb.toString();
+        }
+        if (logger.isTraceEnabled()) {
+            for (TbProbeSeries s : series) {
+                logger.trace(s);
             }
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_net.js"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                netJs = sb.toString();
-            }
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/options_hdd.js"), "UTF-8"))) {
-                sb = new StringBuilder();
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append(System.lineSeparator());
-                }
-                hddJs = sb.toString();
-            }
+        }
+        return series;
+    }
+
+    // creating html report
+    private void doReport() throws ExecutionException {
+        // reading from template
+        String report = templateHtml.replace("XXX_TITLE_XXX", conf.getHostname());
+        report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
+        report = report.replace("XXX_DATE_XXX", sdfHtml.format(curResult.getCollectTms()));
+
+        // calculate reporting window
+        Date fromTime = new Date(curResult.getCollectTms().getTime() - (conf.getReportHours() * HOUR_MS));
+
+        // replacing placeholders
+        report = report.replace("XXX_JSDATA_XXX\n", createJavascript(fromTime));
+        report = report.replace("XXX_BODY_XXX\n", createHmtlBody());
+        report = report.replace("XXX_TIMINGS_XXX",
+                String.format("Time spent collecting samples: %,dms, writing samples: %,dms, generating report: %,dms",
+                        (endCollectTime - startCollectTime) / 1000000L,
+                        (endPersistTime - startPersistTime) / 1000000L,
+                        (System.nanoTime() - startReportTime) / 1000000L));
+
+        // writing to file
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING})) {
+            bw.write(report);
         } catch (IOException ex) {
-            logger.log(SEVERE, "I/O error while reading templates, aborting - {0}", ex.getMessage());
-            System.exit(1);
+            throw new ExecutionException(String.format("I/O error while generating HTML report, aborting - %s", ex.getMessage()), ex);
         }
     }
 
-    /*
-     * methods for parsing data from Operating System
-     */
-    private LoadSample parseLoadAvg() {
-        LoadSample load = new LoadSample();
-        if (System.getProperty("os.name").equals("Linux")) {
-            try (BufferedReader br = new BufferedReader(new FileReader("/proc/loadavg"))) {
-                String[] split = br.readLine().split("\\s+");
-                load.setLoad1minute(new BigDecimal(split[0]));
-                load.setLoad5minute(new BigDecimal(split[1]));
-                load.setLoad15minute(new BigDecimal(split[2]));
-            } catch (IOException ex) {
-                // can't happen
-            }
-        } else if (System.getProperty("os.name").equals("FreeBSD")) {
-            try {
-                Process p = new ProcessBuilder("sysctl", "vm.loadavg").redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String[] split = br.readLine().split("\\s+");
-                    load.setLoad1minute(new BigDecimal(split[2]));
-                    load.setLoad5minute(new BigDecimal(split[3]));
-                    load.setLoad15minute(new BigDecimal(split[4]));
-                }
-            } catch (IOException | InterruptedException ex) {
-                // can't happen
-            }
-        }
-        return load;
-    }
-
-    private CpuSample parseCpu() {
-        CpuSample cpu = new CpuSample();
-        if (System.getProperty("os.name").equals("Linux")) {
-            // since the first word of line is 'cpu', numbers start from split[1]
-            // 4th value is idle, 5th is iowait
-            try (BufferedReader br = new BufferedReader(new FileReader("/proc/stat"))) {
-                String[] split = br.readLine().split("\\s+");
-                long total = 0;
-                for (int i = 1; i < split.length; i++) {
-                    total += Long.parseLong(split[i]);
-                }
-                cpu.setTotalTime(total);
-                cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
-            } catch (IOException ex) {
-                // can't happen
-            }
-        } else if (System.getProperty("os.name").equals("FreeBSD")) {
-            // since the first word of line is always the sysctl name
-            // values are: user, nice, system, interrupt, idle
-            try {
-                Process p = new ProcessBuilder("sysctl", "kern.cp_time").redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String[] split = br.readLine().split("\\s+");
-                    long total = 0;
-                    for (int i = 1; i < split.length; i++) {
-                        total += Long.parseLong(split[i]);
-                    }
-                    cpu.setTotalTime(total);
-                    cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
-                }
-            } catch (IOException | InterruptedException ex) {
-                // can't happen
-            }
-        }
-        return cpu;
-    }
-
-    private MemSample parseMem() {
-        MemSample ret = new MemSample();
-        if (System.getProperty("os.name").equals("Linux")) {
-            try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
-                String line;
-                long memTotal = 0, memFree = 0, buffers = 0, cached = 0, swapTotal = 0, swapFree = 0;
-                // values from /proc are in kibibyte, but we store in bytes
-                while ((line = br.readLine()) != null) {
-                    if (line.startsWith("MemTotal")) {
-                        memTotal = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    } else if (line.startsWith("MemFree")) {
-                        memFree = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    } else if (line.startsWith("Buffers")) {
-                        buffers = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    } else if (line.startsWith("Cached")) {
-                        cached = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    } else if (line.startsWith("SwapTotal")) {
-                        swapTotal = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    } else if (line.startsWith("SwapFree")) {
-                        swapFree = Long.parseLong(line.split("\\s+")[1]) * 1024L;
-                    }
-                }
-                ret.setMemUsed(memTotal - memFree - buffers - cached);
-                ret.setSwapUsed(swapTotal - swapFree);
-            } catch (IOException ex) {
-                // can't happen
-            }
-        } else if (System.getProperty("os.name").equals("FreeBSD")) {
-            try {
-                Process p = new ProcessBuilder("sysctl", "vm.stats.vm.v_page_size", "vm.stats.vm.v_active_count", "vm.stats.vm.v_wire_count", "kstat.zfs.misc.arcstats.size").redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String line;
-                    long pageSize = 0, active = 0, wired = 0, arc = 0;
-                    // values from sysctl are in pages, usually 4096 bytes each, but we store in bytes
-                    // sysctl sould always return a number or rows equal to the number of values requested, even in case of unknown oid
-                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_page_size")) {
-                        pageSize = Long.parseLong(line.split("\\s+")[1]);
-                    }
-                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_active_count")) {
-                        active = Long.parseLong(line.split("\\s+")[1]);
-                    }
-                    if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_wire_count")) {
-                        wired = Long.parseLong(line.split("\\s+")[1]);
-                    }
-                    // value for arc is in raw bytes, ZFS module could be not loaded
-                    if ((line = br.readLine()) != null && line.startsWith("kstat.zfs.misc.arcstats.size") && !line.contains("unknown oid")) {
-                        arc = Long.parseLong(line.split("\\s+")[1]);
-                    }
-                    ret.setMemUsed(active * pageSize + wired * pageSize - arc);
-                }
-                p = new ProcessBuilder("sh", "-c", "swapinfo -k | grep -vi device | grep -vi total | cut -wf3").redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String line;
-                    long swap = 0;
-                    // value is in kibibytes, but we store in bytes
-                    while ((line = br.readLine()) != null) {
-                        swap += Long.parseLong(line) * 1024L;
-                    }
-                    ret.setSwapUsed(swap);
-                }
-            } catch (IOException | InterruptedException ex) {
-                // can't happen
-            }
-        }
-        return ret;
-    }
-
-    private NetSample parseNet(String interfaceName) {
-        NetSample ret = new NetSample();
-        ret.setInterfaceName(interfaceName);
-        if (System.getProperty("os.name").equals("Linux")) {
-            try (BufferedReader br = new BufferedReader(new FileReader("/proc/net/dev"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    line = line.trim();
-                    if (!line.startsWith(interfaceName)) {
-                        continue;
-                    }
-                    String[] split = line.split("\\s+");
-                    ret.setRxBytes(Long.parseLong(split[1]));
-                    ret.setTxBytes(Long.parseLong(split[9]));
-                    break;
-                }
-            } catch (IOException ex) {
-                // can't happen
-            }
-        } else if (System.getProperty("os.name").equals("FreeBSD")) {
-            try {
-                Process p = new ProcessBuilder("sh", "-c", "netstat -b -n -I " + interfaceName + " | grep Link").redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String line;
-                    if ((line = br.readLine()) != null) {
-                        String[] split = line.split("\\s+");
-                        ret.setRxBytes(Long.parseLong(split[7]));
-                        ret.setTxBytes(Long.parseLong(split[10]));
-                    }
-                }
-            } catch (IOException | InterruptedException ex) {
-                // can't happen
-            }
-        }
-        return ret;
-    }
-
-    private HddSample parseDisk(String deviceName) {
-        HddSample ret = new HddSample();
-        ret.setDeviceName(deviceName);
-        String[] devList = deviceName.split("_");
-        long readBytes = 0, writeBytes = 0;
-        if (System.getProperty("os.name").equals("Linux")) {
-            try (BufferedReader br = new BufferedReader(new FileReader("/proc/diskstats"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    line = line.trim();
-                    String[] split = line.split("\\s+");
-                    for (String dev : devList) {
-                        if (!isEmpty(dev) && split[2].equals(dev.trim())) {
-                            // values in 512 bytes sectors
-                            readBytes += Long.parseLong(split[2 + 3]) * 512L;
-                            writeBytes += Long.parseLong(split[2 + 7]) * 512L;
-                        }
-                    }
-                }
-            } catch (IOException ex) {
-                // can't happen
-            }
-        } else if (System.getProperty("os.name").equals("FreeBSD")) {
-            try {
-                Process p = new ProcessBuilder("sh", "-c", "iostat -Ixd " + deviceName.replaceAll("_", " ")).redirectErrorStream(true).start();
-                p.waitFor();
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        String[] split = line.split("\\s+");
-                        for (String dev : devList) {
-                            if (!isEmpty(dev) && split[0].equals(dev.trim())) {
-                                // values in kibibytes
-                                readBytes += (new BigDecimal(split[3]).multiply(new BigDecimal(1024)).setScale(0, RoundingMode.HALF_UP)).longValue();
-                                writeBytes += (new BigDecimal(split[4]).multiply(new BigDecimal(1024)).setScale(0, RoundingMode.HALF_UP)).longValue();
-                            }
-                        }
-                    }
-                }
-            } catch (IOException | InterruptedException ex) {
-                // can't happen
-            }
-        }
-        ret.setReadBytes(readBytes);
-        ret.setWriteBytes(writeBytes);
-        return ret;
-    }
-
-    /*
-     * methods for calculating values from raw samples, if necessary, and saving them into database
-     */
-    private void saveLoadAvg(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
-        LoadSample cs = (LoadSample) curResult.getProbeSampleList().get(i);
-        pstmt.setString(1, "load1m");
-        pstmt.setString(2, sample_tms);
-        pstmt.setString(3, cs.getLoad1minute().toString());
-        pstmt.addBatch();
-        pstmt.setString(1, "load5m");
-        pstmt.setString(2, sample_tms);
-        pstmt.setString(3, cs.getLoad5minute().toString());
-        pstmt.addBatch();
-        pstmt.setString(1, "load15m");
-        pstmt.setString(2, sample_tms);
-        pstmt.setString(3, cs.getLoad15minute().toString());
-        pstmt.addBatch();
-    }
-
-    private void saveCpu(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
-        // cpu saved in percent, rounded to 1 significant digit
-        CpuSample cs = (CpuSample) curResult.getProbeSampleList().get(i);
-        CpuSample ps = (CpuSample) prevResult.getProbeSampleList().get(i);
-        pstmt.setString(1, "cpu");
-        pstmt.setString(2, sample_tms);
-        long diffTotal = cs.getTotalTime() - ps.getTotalTime();
-        long diffIdle = cs.getIdleTime() - ps.getIdleTime();
-        BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
-        pstmt.setString(3, cpu.toString());
-        pstmt.addBatch();
-    }
-
-    private void saveMem(PreparedStatement pstmt, int i, String sample_tms) throws SQLException {
-        // mem saved in mebibyte, rounded to nearest integer
-        MemSample cs = (MemSample) curResult.getProbeSampleList().get(i);
-        pstmt.setString(1, "mem");
-        pstmt.setString(2, sample_tms);
-        BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
-        pstmt.setString(3, mem.toString());
-        pstmt.addBatch();
-        pstmt.setString(1, "swap");
-        pstmt.setString(2, sample_tms);
-        BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
-        pstmt.setString(3, swap.toString());
-        pstmt.addBatch();
-    }
-
-    private void saveNet(PreparedStatement pstmt, int i, String sample_tms, long elapsedMsec) throws SQLException {
-        // net saved in kibibyte/s, rounded to nearest integer
-        NetSample cs = (NetSample) curResult.getProbeSampleList().get(i);
-        NetSample ps = (NetSample) prevResult.getProbeSampleList().get(i);
-        pstmt.setString(1, "net_tx_" + cs.getInterfaceName());
-        pstmt.setString(2, sample_tms);
-        BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-        pstmt.setString(3, tx.toString());
-        pstmt.addBatch();
-        pstmt.setString(1, "net_rx_" + cs.getInterfaceName());
-        pstmt.setString(2, sample_tms);
-        BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-        pstmt.setString(3, rx.toString());
-        pstmt.addBatch();
-    }
-
-    private void saveHdd(PreparedStatement pstmt, int i, String sample_tms, long elapsedMsec) throws SQLException {
-        // net saved in mbyte/s, rounded to 1 significant digit
-        HddSample cs = (HddSample) curResult.getProbeSampleList().get(i);
-        HddSample ps = (HddSample) prevResult.getProbeSampleList().get(i);
-        pstmt.setString(1, "hdd_read_" + cs.getDeviceName());
-        pstmt.setString(2, sample_tms);
-        BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-        pstmt.setString(3, read.toString());
-        pstmt.addBatch();
-        pstmt.setString(1, "hdd_write_" + cs.getDeviceName());
-        pstmt.setString(2, sample_tms);
-        BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-        pstmt.setString(3, write.toString());
-        pstmt.addBatch();
-    }
-
-    /*
-     * methods for loading data from database, and writing it into javascript array
-     */
-    private String writeLoadJsData(Connection conn, String fromTime) throws SQLException, IOException {
+    // body part
+    private String createHmtlBody() {
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawLoad);").append(System.lineSeparator());
-        sb.append("function drawLoad() {").append(System.lineSeparator());
+        for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
+            sb.append("<div id=\"div_chart").append(i + 1).append("\" class=\"chart-container ");
+            if (conf.getProbeConfigList().get(i).getChSize() == ProbeConfiguration.ChartSize.FULL_SIZE) {
+                sb.append("full-size");
+            } else if (conf.getProbeConfigList().get(i).getChSize() == ProbeConfiguration.ChartSize.HALF_SIZE) {
+                sb.append("half-size");
+            } else {
+                throw new UnsupportedOperationException(String.format("Unsupported chart size: %s, aborting", conf.getProbeConfigList().get(i).getChSize()));
+            }
+            sb.append("\"></div>").append(System.lineSeparator());
+        }
+        return sb.toString();
+    }
+
+    // javascript data and callback
+    private String createJavascript(Date fromTime) throws ExecutionException {
+        StringBuilder sb = new StringBuilder();
+        try (Connection conn = databaseStrategy.getConnection()) {
+            for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
+                if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+                    sb.append(createLoadCallback(i, conn, fromTime));
+                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+                    sb.append(createCpuCallback(i, conn, fromTime));
+                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+                    sb.append(createMemCallback(i, conn, fromTime));
+                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+                    sb.append(createNetCallback(i, conn, fromTime));
+                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
+                    sb.append(createDiskCallback(i, conn, fromTime));
+                } else {
+                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
+                }
+            }
+        } catch (SQLException ex) {
+            throw new ExecutionException(String.format("Error while reading timeseries from DB, aborting - %s", ex.getMessage()), ex);
+        }
+        return sb.toString();
+    }
+
+    private String createLoadCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
         sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', '1 min');").append(System.lineSeparator());
         sb.append("data.addColumn('number', '5 min');").append(System.lineSeparator());
         sb.append("data.addColumn('number', '15 min');").append(System.lineSeparator());
-
-        try (PreparedStatement stmt = conn.prepareStatement(SELECT_LOAD)) {
-            stmt.setString(1, fromTime);
-            try (ResultSet rs = stmt.executeQuery()) {
-                Calendar cal = Calendar.getInstance();
-                while (rs.next()) {
-                    try {
-                        cal.setTime(sdfSql.parse(rs.getString(1)));
-                    } catch (ParseException ex) {
-                        // can't happen, but just in case we skip the line
-                        continue;
-                    }
-                    sb.append("data.addRows([[new Date(");
-                    sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH)).append(",");
-                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
-                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
-                    sb.append(cal.get(Calendar.MINUTE)).append(",");
-                    sb.append(cal.get(Calendar.SECOND)).append("),");
-                    sb.append(rs.getString(2)).append(",");
-                    sb.append(rs.getString(3)).append(",");
-                    sb.append(rs.getString(4));
-                    sb.append("]]);");
-                    sb.append(System.lineSeparator());
-                }
-            }
-        }
-
-        sb.append(loadJs);
-
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_load'));").append(System.lineSeparator());
+        sb.append(databaseStrategy.readLoadJsData(conn, conf.getHostname(), fromTime));
+        // options
+        sb.append(optsLoadJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
-    private String writeCpuJsData(Connection conn, String fromTime) throws SQLException, IOException {
+    private String createCpuCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawCpu);").append(System.lineSeparator());
-        sb.append("function drawCpu() {").append(System.lineSeparator());
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
         sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'CPU');").append(System.lineSeparator());
-
-        try (PreparedStatement stmt = conn.prepareStatement(SELECT_CPU)) {
-            stmt.setString(1, fromTime);
-            try (ResultSet rs = stmt.executeQuery()) {
-                Calendar cal = Calendar.getInstance();
-                while (rs.next()) {
-                    try {
-                        cal.setTime(sdfSql.parse(rs.getString(1)));
-                    } catch (ParseException ex) {
-                        // can't happen, but just in case we skip the line
-                        continue;
-                    }
-                    sb.append("data.addRows([[new Date(");
-                    sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH)).append(",");
-                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
-                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
-                    sb.append(cal.get(Calendar.MINUTE)).append(",");
-                    sb.append(cal.get(Calendar.SECOND)).append("),");
-                    sb.append(rs.getString(2));
-                    sb.append("]]);");
-                    sb.append(System.lineSeparator());
-                }
-            }
-        }
-
-        sb.append(cpuJs);
-
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_cpu'));").append(System.lineSeparator());
+        sb.append(databaseStrategy.readCpuJsData(conn, conf.getHostname(), fromTime));
+        // options
+        sb.append(optsCpuJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
-    private String writeMemJsData(Connection conn, String fromTime) throws SQLException, IOException {
+    private String createMemCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawMem);").append(System.lineSeparator());
-        sb.append("function drawMem() {").append(System.lineSeparator());
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
         sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Physical memory');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Swap');").append(System.lineSeparator());
-
-        try (PreparedStatement stmt = conn.prepareStatement(SELECT_MEM)) {
-            stmt.setString(1, fromTime);
-            try (ResultSet rs = stmt.executeQuery()) {
-                Calendar cal = Calendar.getInstance();
-                while (rs.next()) {
-                    try {
-                        cal.setTime(sdfSql.parse(rs.getString(1)));
-                    } catch (ParseException ex) {
-                        // can't happen, but just in case we skip the line
-                        continue;
-                    }
-                    sb.append("data.addRows([[new Date(");
-                    sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH)).append(",");
-                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
-                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
-                    sb.append(cal.get(Calendar.MINUTE)).append(",");
-                    sb.append(cal.get(Calendar.SECOND)).append("),");
-                    sb.append(rs.getString(2)).append(",");
-                    sb.append(rs.getString(3));
-                    sb.append("]]);");
-                    sb.append(System.lineSeparator());
-                }
-            }
-        }
-
-        sb.append(memJs);
-
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_mem'));").append(System.lineSeparator());
+        sb.append(databaseStrategy.readMemJsData(conn, conf.getHostname(), fromTime));
+        // options
+        sb.append(optsMemJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
-    private String writeNetJsData(Connection conn, String fromTime, String interfaceName) throws SQLException, IOException {
+    private String createNetCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawNet_").append(interfaceName).append(");").append(System.lineSeparator());
-        sb.append("function drawNet_").append(interfaceName).append("() {").append(System.lineSeparator());
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
         sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'TX');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'RX');").append(System.lineSeparator());
-
-        try (PreparedStatement stmt = conn.prepareStatement(SELECT_NET)) {
-            stmt.setString(1, fromTime);
-            stmt.setString(2, "net_tx_" + interfaceName);
-            stmt.setString(3, "net_rx_" + interfaceName);
-            try (ResultSet rs = stmt.executeQuery()) {
-                Calendar cal = Calendar.getInstance();
-                while (rs.next()) {
-                    try {
-                        cal.setTime(sdfSql.parse(rs.getString(1)));
-                    } catch (ParseException ex) {
-                        // can't happen, but just in case we skip the line
-                        continue;
-                    }
-                    sb.append("data.addRows([[new Date(");
-                    sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH)).append(",");
-                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
-                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
-                    sb.append(cal.get(Calendar.MINUTE)).append(",");
-                    sb.append(cal.get(Calendar.SECOND)).append("),");
-                    sb.append(rs.getString(2)).append(",");
-                    sb.append("-").append(rs.getString(3));
-                    sb.append("]]);");
-                    sb.append(System.lineSeparator());
-                }
-            }
-        }
-
-        sb.append(netJs);
-
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_net_").append(interfaceName).append("'));").append(System.lineSeparator());
+        sb.append(databaseStrategy.readNetJsData(conn, conf.getHostname(), conf.getProbeConfigList().get(idx).getDevice(), fromTime));
+        // options
+        sb.append(optsNetJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
-        return sb.toString().replace("REPLACEME", interfaceName);
+        return sb.toString().replace("REPLACEME", conf.getProbeConfigList().get(idx).getLabel());
     }
 
-    private String writeHddJsData(Connection conn, String fromTime, String deviceName) throws SQLException, IOException {
+    private String createDiskCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawHdd_").append(deviceName).append(");").append(System.lineSeparator());
-        sb.append("function drawHdd_").append(deviceName).append("() {").append(System.lineSeparator());
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
         sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Read');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Write');").append(System.lineSeparator());
-
-        try (PreparedStatement stmt = conn.prepareStatement(SELECT_HDD)) {
-            stmt.setString(1, fromTime);
-            stmt.setString(2, "hdd_read_" + deviceName);
-            stmt.setString(3, "hdd_write_" + deviceName);
-            try (ResultSet rs = stmt.executeQuery()) {
-                Calendar cal = Calendar.getInstance();
-                while (rs.next()) {
-                    try {
-                        cal.setTime(sdfSql.parse(rs.getString(1)));
-                    } catch (ParseException ex) {
-                        // can't happen, but just in case we skip the line
-                        continue;
-                    }
-                    sb.append("data.addRows([[new Date(");
-                    sb.append(cal.get(Calendar.YEAR)).append(",");
-                    sb.append(cal.get(Calendar.MONTH)).append(",");
-                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
-                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
-                    sb.append(cal.get(Calendar.MINUTE)).append(",");
-                    sb.append(cal.get(Calendar.SECOND)).append("),");
-                    sb.append(rs.getString(2)).append(",");
-                    sb.append("-").append(rs.getString(3));
-                    sb.append("]]);");
-                    sb.append(System.lineSeparator());
-                }
-            }
-        }
-
-        sb.append(hddJs);
-
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_hdd_").append(deviceName).append("'));").append(System.lineSeparator());
+        sb.append(databaseStrategy.readDiskJsData(conn, conf.getHostname(), conf.getProbeConfigList().get(idx).getDevice(), fromTime));
+        // options
+        sb.append(optsDiskJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
-        return sb.toString().replace("REPLACEME", deviceName);
+        return sb.toString().replace("REPLACEME", conf.getProbeConfigList().get(idx).getLabel());
+    }
+
+    private void doMaintenance() throws ExecutionException {
+        try (Connection conn = databaseStrategy.getConnection()) {
+            if (conf.getRetentionHours() > 0) {
+                Date fromTime = new Date(curResult.getCollectTms().getTime() - (conf.getRetentionHours() * HOUR_MS));
+                databaseStrategy.deleteTimeseries(conn, conf.getHostname(), fromTime);
+            }
+            databaseStrategy.doMaintenance(conn);
+        } catch (SQLException ex) {
+            throw new ExecutionException(String.format("Error while doing Database maintenance, aborting - %s", ex.getMessage()), ex);
+        }
     }
 
 }
