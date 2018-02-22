@@ -15,21 +15,21 @@ public class LinuxCollectStrategy extends CollectStrategy {
 
     @Override
     public LoadRawSample collectLoadAvg() {
-        LoadRawSample load = new LoadRawSample();
+        LoadRawSample ret = new LoadRawSample();
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/loadavg"))) {
             String[] split = br.readLine().split("\\s+");
-            load.setLoad1minute(new BigDecimal(split[0]));
-            load.setLoad5minute(new BigDecimal(split[1]));
-            load.setLoad15minute(new BigDecimal(split[2]));
+            ret.setLoad1minute(new BigDecimal(split[0]));
+            ret.setLoad5minute(new BigDecimal(split[1]));
+            ret.setLoad15minute(new BigDecimal(split[2]));
         } catch (IOException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
         }
-        return load;
+        return ret;
     }
 
     @Override
     public CpuRawSample collectCpu() {
-        CpuRawSample cpu = new CpuRawSample();
+        CpuRawSample ret = new CpuRawSample();
         // since the first word of line is 'cpu', numbers start from split[1]
         // 4th value is idle, 5th is iowait
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/stat"))) {
@@ -38,12 +38,12 @@ public class LinuxCollectStrategy extends CollectStrategy {
             for (int i = 1; i < split.length; i++) {
                 total += Long.parseLong(split[i]);
             }
-            cpu.setTotalTime(total);
-            cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
+            ret.setTotalTime(total);
+            ret.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
         } catch (IOException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
         }
-        return cpu;
+        return ret;
     }
 
     @Override

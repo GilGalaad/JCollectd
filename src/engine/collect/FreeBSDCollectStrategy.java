@@ -16,25 +16,25 @@ public class FreeBSDCollectStrategy extends CollectStrategy {
 
     @Override
     public LoadRawSample collectLoadAvg() {
-        LoadRawSample load = new LoadRawSample();
+        LoadRawSample ret = new LoadRawSample();
         try {
             Process p = new ProcessBuilder("sysctl", "vm.loadavg").redirectErrorStream(true).start();
             p.waitFor();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String[] split = br.readLine().split("\\s+");
-                load.setLoad1minute(new BigDecimal(split[2]));
-                load.setLoad5minute(new BigDecimal(split[3]));
-                load.setLoad15minute(new BigDecimal(split[4]));
+                ret.setLoad1minute(new BigDecimal(split[2]));
+                ret.setLoad5minute(new BigDecimal(split[3]));
+                ret.setLoad15minute(new BigDecimal(split[4]));
             }
         } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
         }
-        return load;
+        return ret;
     }
 
     @Override
     public CpuRawSample collectCpu() {
-        CpuRawSample cpu = new CpuRawSample();
+        CpuRawSample ret = new CpuRawSample();
         // since the first word of line is always the sysctl name
         // values are: user, nice, system, interrupt, idle
         try {
@@ -46,13 +46,13 @@ public class FreeBSDCollectStrategy extends CollectStrategy {
                 for (int i = 1; i < split.length; i++) {
                     total += Long.parseLong(split[i]);
                 }
-                cpu.setTotalTime(total);
-                cpu.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
+                ret.setTotalTime(total);
+                ret.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
             }
         } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
         }
-        return cpu;
+        return ret;
     }
 
     @Override
