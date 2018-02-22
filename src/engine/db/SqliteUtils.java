@@ -38,6 +38,7 @@ public class SqliteUtils {
             + "FROM tb_probe_series\n"
             + "WHERE hostname = ?\n"
             + "AND (probe_type = 'load1m' OR probe_type = 'load5m' OR probe_type = 'load15m')\n"
+            + "AND device IS NULL\n"
             + "AND sample_tms > ?\n"
             + "GROUP BY sample_tms ORDER BY sample_tms";
 
@@ -45,6 +46,7 @@ public class SqliteUtils {
             + "FROM tb_probe_series\n"
             + "WHERE hostname = ?\n"
             + "AND probe_type = 'cpu'\n"
+            + "AND device IS NULL\n"
             + "AND sample_tms > ?\n"
             + "ORDER BY sample_tms";
 
@@ -54,6 +56,7 @@ public class SqliteUtils {
             + "FROM tb_probe_series\n"
             + "WHERE hostname = ?\n"
             + "AND (probe_type = 'mem' OR probe_type = 'swap')\n"
+            + "AND device IS NULL\n"
             + "AND sample_tms > ?\n"
             + "GROUP BY sample_tms ORDER BY sample_tms";
 

@@ -24,6 +24,7 @@ MAX(CASE WHEN probe_type = 'load15m' THEN sample_value ELSE NULL END) load15m
 FROM tb_probe_series
 WHERE hostname = ?
 AND (probe_type = 'load1m' OR probe_type = 'load5m' OR probe_type = 'load15m')
+AND device IS NULL
 AND sample_tms > ?
 GROUP BY sample_tms ORDER BY sample_tms;
 
@@ -31,6 +32,7 @@ SELECT sample_tms, sample_value
 FROM tb_probe_series
 WHERE hostname = ?
 AND probe_type = 'cpu'
+AND device IS NULL
 AND sample_tms > ?
 ORDER BY sample_tms;
 
@@ -40,6 +42,7 @@ MAX(CASE WHEN probe_type = 'swap' THEN sample_value ELSE NULL END) swap
 FROM tb_probe_series
 WHERE hostname = ?
 AND (probe_type = 'mem' OR probe_type = 'swap')
+AND device IS NULL
 AND sample_tms > ?
 GROUP BY sample_tms ORDER BY sample_tms;
 
