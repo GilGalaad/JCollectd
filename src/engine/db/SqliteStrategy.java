@@ -89,7 +89,7 @@ public class SqliteStrategy extends DatabaseStrategy {
                     try {
                         cal.setTime(sdfSqlite.parse(rs.getString(1)));
                     } catch (ParseException ex) {
-                        // this sould never happen, but just in case we skip the line
+                        // this should never happen, but just in case we skip the line
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
@@ -124,7 +124,7 @@ public class SqliteStrategy extends DatabaseStrategy {
                     try {
                         cal.setTime(sdfSqlite.parse(rs.getString(1)));
                     } catch (ParseException ex) {
-                        // this sould never happen, but just in case we skip the line
+                        // this should never happen, but just in case we skip the line
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
@@ -157,7 +157,7 @@ public class SqliteStrategy extends DatabaseStrategy {
                     try {
                         cal.setTime(sdfSqlite.parse(rs.getString(1)));
                     } catch (ParseException ex) {
-                        // this sould never happen, but just in case we skip the line
+                        // this should never happen, but just in case we skip the line
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
@@ -192,7 +192,7 @@ public class SqliteStrategy extends DatabaseStrategy {
                     try {
                         cal.setTime(sdfSqlite.parse(rs.getString(1)));
                     } catch (ParseException ex) {
-                        // this sould never happen, but just in case we skip the line
+                        // this should never happen, but just in case we skip the line
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
@@ -227,7 +227,7 @@ public class SqliteStrategy extends DatabaseStrategy {
                     try {
                         cal.setTime(sdfSqlite.parse(rs.getString(1)));
                     } catch (ParseException ex) {
-                        // this sould never happen, but just in case we skip the line
+                        // this should never happen, but just in case we skip the line
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
