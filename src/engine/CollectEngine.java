@@ -18,8 +18,8 @@ import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 import engine.config.ProbeConfiguration;
 import engine.config.ProbeConfiguration.ProbeType;
 import engine.db.DatabaseStrategy;
-import engine.db.SqliteStrategy;
 import engine.db.TbProbeSeries;
+import engine.db.sqlite.SqliteStrategy;
 import engine.exception.ExecutionException;
 import engine.sample.CollectResult;
 import engine.sample.CpuRawSample;
@@ -303,9 +303,7 @@ public class CollectEngine {
             }
         }
         if (logger.isTraceEnabled()) {
-            for (TbProbeSeries s : series) {
-                logger.trace(s);
-            }
+            series.forEach((s) -> logger.trace(s));
         }
         return series;
     }
