@@ -1,4 +1,4 @@
-package engine.db;
+package engine.db.sqlite;
 
 public class SqliteUtils {
 

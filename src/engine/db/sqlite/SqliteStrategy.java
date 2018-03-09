@@ -1,20 +1,22 @@
-package engine.db;
+package engine.db.sqlite;
 
 import engine.config.CollectConfiguration;
-import static engine.db.SqliteUtils.ANALYZE;
-import static engine.db.SqliteUtils.BEGIN_TRANS;
-import static engine.db.SqliteUtils.CREATE_IDX_STMT;
-import static engine.db.SqliteUtils.CREATE_TB_STMT;
-import static engine.db.SqliteUtils.DEL_STMT;
-import static engine.db.SqliteUtils.END_TRANS;
-import static engine.db.SqliteUtils.INS_STMT;
-import static engine.db.SqliteUtils.PRAGMA;
-import static engine.db.SqliteUtils.SELECT_CPU;
-import static engine.db.SqliteUtils.SELECT_DISK;
-import static engine.db.SqliteUtils.SELECT_LOAD;
-import static engine.db.SqliteUtils.SELECT_MEM;
-import static engine.db.SqliteUtils.SELECT_NET;
-import static engine.db.SqliteUtils.VACUUM;
+import engine.db.DatabaseStrategy;
+import engine.db.TbProbeSeries;
+import static engine.db.sqlite.SqliteUtils.ANALYZE;
+import static engine.db.sqlite.SqliteUtils.BEGIN_TRANS;
+import static engine.db.sqlite.SqliteUtils.CREATE_IDX_STMT;
+import static engine.db.sqlite.SqliteUtils.CREATE_TB_STMT;
+import static engine.db.sqlite.SqliteUtils.DEL_STMT;
+import static engine.db.sqlite.SqliteUtils.END_TRANS;
+import static engine.db.sqlite.SqliteUtils.INS_STMT;
+import static engine.db.sqlite.SqliteUtils.PRAGMA;
+import static engine.db.sqlite.SqliteUtils.SELECT_CPU;
+import static engine.db.sqlite.SqliteUtils.SELECT_DISK;
+import static engine.db.sqlite.SqliteUtils.SELECT_LOAD;
+import static engine.db.sqlite.SqliteUtils.SELECT_MEM;
+import static engine.db.sqlite.SqliteUtils.SELECT_NET;
+import static engine.db.sqlite.SqliteUtils.VACUUM;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -27,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
-public class SqliteStrategy extends DatabaseStrategy {
+public class SqliteStrategy implements DatabaseStrategy {
 
     private final String connectionString;
     private final SimpleDateFormat sdfSqlite = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");

@@ -12,7 +12,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class FreeBSDCollectStrategy extends CollectStrategy {
+public class FreeBSDCollectStrategy implements CollectStrategy {
 
     @Override
     public LoadRawSample collectLoadAvg() {

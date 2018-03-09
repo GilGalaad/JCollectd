@@ -6,16 +6,16 @@ import engine.sample.LoadRawSample;
 import engine.sample.MemRawSample;
 import engine.sample.NetRawSample;
 
-public abstract class CollectStrategy {
+public interface CollectStrategy {
 
-    public abstract LoadRawSample collectLoadAvg();
+    LoadRawSample collectLoadAvg();
 
-    public abstract CpuRawSample collectCpu();
+    CpuRawSample collectCpu();
 
-    public abstract MemRawSample collectMem();
+    MemRawSample collectMem();
 
-    public abstract NetRawSample collectNet(String interfaceName);
+    NetRawSample collectNet(String interfaceName);
 
-    public abstract DiskRawSample collectDisk(String deviceName);
+    DiskRawSample collectDisk(String deviceName);
 
 }

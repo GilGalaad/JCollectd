@@ -11,7 +11,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
 
-public class LinuxCollectStrategy extends CollectStrategy {
+public class LinuxCollectStrategy implements CollectStrategy {
 
     @Override
     public LoadRawSample collectLoadAvg() {
