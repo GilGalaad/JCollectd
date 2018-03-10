@@ -6,12 +6,12 @@
     </Properties>
     <appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="${sys:simple_pattern}" />
+            <PatternLayout pattern="${sys:simple_pattern}"/>
         </Console>
     </appenders>
     <loggers>
         <root level="ALL">
-            <appender-ref ref="Console" level="INFO" />
+            <appender-ref ref="Console" level="INFO"/>
         </root>
     </loggers>
 </configuration>
