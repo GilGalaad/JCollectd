@@ -3,7 +3,7 @@ package engine;
 public class ReportUtils {
 
     protected static final String templateHtml = "<!DOCTYPE html>\n"
-            + "<html>\n"
+            + "<html lang=\"en\">\n"
             + "    <head>\n"
             + "        <title>XXX_TITLE_XXX</title>\n"
             + "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
@@ -82,8 +82,8 @@ public class ReportUtils {
             + "                }\n"
             + "            }\n"
             + "        </style>\n"
-            + "        <script type=\"text/javascript\" src=\"https://www.gstatic.com/charts/loader.js\"></script>\n"
-            + "        <script type=\"text/javascript\">\n"
+            + "        <script src=\"https://www.gstatic.com/charts/loader.js\"></script>\n"
+            + "        <script>\n"
             + "            google.charts.load('45', {'packages': ['corechart']});\n"
             + "\n"
             + "XXX_JSDATA_XXX\n"
