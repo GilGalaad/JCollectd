@@ -11,12 +11,11 @@ The program does the following:
 * rinse and repeat until stopped
 
 ## Build and installation
-Build is done via [Apache Ant](http://ant.apache.org/)
+Build is done via [Apache Maven](https://maven.apache.org/)
 ```bash
-$ ant -f build-jar.xml
+$ mvn clean package
 ```
-A single file `JCollectd.jar` will be produced into `dist/` directory. Copy it whenever you want.
-Original `build.xml` file and `nbproject/` directory are provided, in case you want to open the project in [Netbeans IDE](https://netbeans.org/).
+A single archive file `JCollectd.jar` will be produced into `target/` directory. Copy it whenever you want.
 
 ## Configuration
 A sample configuration file is included in `artifacts/` directory. Configuration file must be a standard Java property file. 
