@@ -52,10 +52,11 @@ public class SqliteUtils {
 
     protected static final String SELECT_MEM = "SELECT sample_tms,\n"
             + "MAX(CASE WHEN probe_type = 'mem' THEN sample_value ELSE NULL END) mem,\n"
-            + "MAX(CASE WHEN probe_type = 'swap' THEN sample_value ELSE NULL END) swap\n"
+            + "MAX(CASE WHEN probe_type = 'swap' THEN sample_value ELSE NULL END) swap,\n"
+            + "MAX(CASE WHEN probe_type = 'cache' THEN sample_value ELSE NULL END) cache\n"
             + "FROM tb_probe_series\n"
             + "WHERE hostname = ?\n"
-            + "AND (probe_type = 'mem' OR probe_type = 'swap')\n"
+            + "AND (probe_type = 'mem' OR probe_type = 'swap' OR probe_type = 'cache')\n"
             + "AND device IS NULL\n"
             + "AND sample_tms > ?\n"
             + "GROUP BY sample_tms ORDER BY sample_tms";

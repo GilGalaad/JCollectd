@@ -4,6 +4,7 @@ public class MemRawSample extends ProbeRawSample {
 
     private long memUsed;
     private long swapUsed;
+    private long cacheUsed;
 
     public long getMemUsed() {
         return memUsed;
@@ -21,9 +22,17 @@ public class MemRawSample extends ProbeRawSample {
         this.swapUsed = swapUsed;
     }
 
+    public long getCacheUsed() {
+        return cacheUsed;
+    }
+
+    public void setCacheUsed(long cacheUsed) {
+        this.cacheUsed = cacheUsed;
+    }
+
     @Override
     public String toString() {
-        return "MemSample{" + "memUsed=" + memUsed + ", swapUsed=" + swapUsed + '}';
+        return "MemRawSample{" + "memUsed=" + memUsed + ", swapUsed=" + swapUsed + ", cacheUsed=" + cacheUsed + '}';
     }
 
 }

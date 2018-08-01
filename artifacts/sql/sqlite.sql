@@ -38,10 +38,11 @@ ORDER BY sample_tms;
 
 SELECT sample_tms,
 MAX(CASE WHEN probe_type = 'mem' THEN sample_value ELSE NULL END) mem,
-MAX(CASE WHEN probe_type = 'swap' THEN sample_value ELSE NULL END) swap
+MAX(CASE WHEN probe_type = 'swap' THEN sample_value ELSE NULL END) swap,
+MAX(CASE WHEN probe_type = 'cache' THEN sample_value ELSE NULL END) cache
 FROM tb_probe_series
 WHERE hostname = ?
-AND (probe_type = 'mem' OR probe_type = 'swap')
+AND (probe_type = 'mem' OR probe_type = 'swap' OR probe_type = 'cache')
 AND device IS NULL
 AND sample_tms > ?
 GROUP BY sample_tms ORDER BY sample_tms;

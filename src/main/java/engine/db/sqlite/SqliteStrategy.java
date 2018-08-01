@@ -171,7 +171,8 @@ public class SqliteStrategy implements DatabaseStrategy {
                     sb.append(cal.get(Calendar.MINUTE)).append(",");
                     sb.append(cal.get(Calendar.SECOND)).append("),");
                     sb.append(rs.getString(2)).append(",");
-                    sb.append(rs.getString(3));
+                    sb.append(rs.getString(3)).append(",");
+                    sb.append(rs.getString(4));
                     sb.append("]]);");
                     sb.append(System.lineSeparator());
                 }

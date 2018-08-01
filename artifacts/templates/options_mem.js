@@ -2,9 +2,10 @@ var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy H
 date_formatter.format(data, 0);
 var options = {
     title: 'Memory usage (in MiB)',
-    colors: ['#3366cc', '#dc3912'],
+    colors: ['#3366cc', '#dc3912', '#ff9900'],
     backgroundColor: {fill: 'transparent'},
     height: 350,
+    isStacked: true,
     fontName: 'Roboto',
     titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
     legend: {

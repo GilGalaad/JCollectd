@@ -256,6 +256,14 @@ public class CollectEngine {
                 BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
                 s2.setSampleValue(swap);
                 series.add(s2);
+                TbProbeSeries s3 = new TbProbeSeries();
+                s3.setHostname(conf.getHostname());
+                s3.setProbeType("cache");
+                s3.setDevice(null);
+                s3.setSampleTms(curResult.getCollectTms());
+                BigDecimal cache = new BigDecimal(cs.getCacheUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                s3.setSampleValue(cache);
+                series.add(s3);
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
                 // net saved in kibibyte/s, rounded to nearest integer
                 NetRawSample cs = (NetRawSample) curResult.getProbeRawSampleList().get(i);
@@ -427,6 +435,7 @@ public class CollectEngine {
         sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Physical memory');").append(System.lineSeparator());
         sb.append("data.addColumn('number', 'Swap');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'Cache');").append(System.lineSeparator());
         sb.append(databaseStrategy.readMemJsData(conn, conf.getHostname(), fromTime));
         // options
         sb.append(optsMemJs).append(System.lineSeparator());

@@ -70,6 +70,7 @@ public class LinuxCollectStrategy implements CollectStrategy {
             }
             ret.setMemUsed(memTotal - memFree - buffers - cached);
             ret.setSwapUsed(swapTotal - swapFree);
+            ret.setCacheUsed(cached);
         } catch (IOException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
         }

@@ -59,11 +59,11 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
     public MemRawSample collectMem() {
         MemRawSample ret = new MemRawSample();
         try {
-            Process p = new ProcessBuilder("sysctl", "vm.stats.vm.v_page_size", "vm.stats.vm.v_active_count", "vm.stats.vm.v_wire_count", "kstat.zfs.misc.arcstats.size").redirectErrorStream(true).start();
+            Process p = new ProcessBuilder("sysctl", "vm.stats.vm.v_page_size", "vm.stats.vm.v_active_count", "vm.stats.vm.v_wire_count", "vm.stats.vm.v_cache_count", "kstat.zfs.misc.arcstats.size").redirectErrorStream(true).start();
             p.waitFor();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
-                long pageSize = 0, active = 0, wired = 0, arc = 0;
+                long pageSize = 0, active = 0, wired = 0, cache = 0, arc = 0;
                 // values from sysctl are in pages, usually 4096 bytes each, but we store in bytes
                 // sysctl sould always return a number or rows equal to the number of values requested, even in case of unknown oid
                 if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_page_size")) {
@@ -75,11 +75,15 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_wire_count")) {
                     wired = Long.parseLong(line.split("\\s+")[1]);
                 }
+                if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_cache_count")) {
+                    cache = Long.parseLong(line.split("\\s+")[1]);
+                }
                 // value for arc is in raw bytes, ZFS module could be not loaded
                 if ((line = br.readLine()) != null && line.startsWith("kstat.zfs.misc.arcstats.size") && !line.contains("unknown oid")) {
                     arc = Long.parseLong(line.split("\\s+")[1]);
                 }
                 ret.setMemUsed(active * pageSize + wired * pageSize - arc);
+                ret.setCacheUsed(cache * pageSize + arc);
             }
         } catch (IOException | InterruptedException ex) {
             throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
