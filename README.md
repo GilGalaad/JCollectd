@@ -31,7 +31,7 @@ After setting general option, you can configure an arbitrary number of probes. E
 Each probe definition can have one of the following values:
 * `load`: enables the Average Load sampling
 * `cpu`: enables the Cpu percent utilization sampling
-* `mem`: enables the Memory & Swap sampling
+* `mem`: enables the Memory, Swap and Cache sampling
 * `net`: enables the Network Traffic sampling
 * `disk`: enables the Hard Disk usage sampling
 
@@ -41,10 +41,11 @@ Each probe can have an optional property `probe.N.size` which can assume the fol
 
 The produced report is fully HTML5 compliant, and features a flowing, responsive layout. You can play with with progressive numbers and sizes to produce your ideal layout. To be mobile-friendly, graphs will be all drawn at full width on smaller resolution devices.
 
-Probes `net` and `hdd` needs an additional mandatory property to be defined: `probe.N.device`, with the name of the network interface or the block device you want to be sampled, (e.g. `probe.5.device=eth0`). The optional parameter `probe.N.label` can be used to see a more meaningful name in the report.
+Probes `net` and `hdd` needs an additional mandatory property to be defined: `probe.N.device`, with the name of the network interface or the block device you want to be sampled, (e.g. `probe.4.device=eth0`). The optional parameter `probe.N.label` can be used to see a more meaningful name in the report.
 
-`disk` probe supports the aggregation of devices, with a plus separated list of devices to be aggregated (e.g. `probe.5.device=sda+sdb+sdc` in case you have a 3-disk RAID5).
-This is done mainly because while Linux provides I/O totals for `mdadm` raid arrays, FreeBSD provides I/O values for each block device but not totals for ZFS `zpools`. So we must go a bit lower level and do some math.
+`disk` probe supports the aggregation of devices, with a plus separated list of devices to be aggregated.\
+Linux provides I/O totals for `mdadm` raid arrays, so you have the choice to probe the *logical* amount of disk activity (using the array itself as device, e.g. `probe.5.device=md0`), or the aggregation of single disks composing the array (e.g. `probe.5.device=sda+sdb+sdc` in case you have a 3-disk RAID5).\
+FreeBSD instead, provides I/O values for each block device but not totals for ZFS `zpools`. So we must use the latter syntax and do some math (e.g. `probe.5.device=da0+da1+da2` in case you have a 3-disk raidz1).
 
 There is a simple sanity check on probe configuration (for example on mandatory parameters, and probe numbering), but I am sure you can shoot yourself in the leg if you try enough.
 
