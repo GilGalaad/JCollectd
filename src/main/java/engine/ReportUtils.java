@@ -10,7 +10,7 @@ public class ReportUtils {
             + "        <meta charset=\"UTF-8\">\n"
             + "        <link rel=\"icon\" type=\"image/png\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAABkSURBVHjaYvz//z8DJYCpfv+rJIoM2Hzz81yKDMAmaDTj7n+yDYBpJtYQJnyS2AxBF2MiRQM2eSZi/G004+5/XAYxMVAIBs4AmDcodgELjHEuQ5mRbANISXnogJHi3EhpGAAGAD1lMjFNCeWlAAAAAElFTkSuQmCC\" />\n"
             + "        <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto\" />\n"
-            + "        <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.2.0/css/all.css\" integrity=\"sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ\" crossorigin=\"anonymous\" />\n"
+            + "        <link rel=\"stylesheet\" href=\"https://use.fontawesome.com/releases/v5.3.1/css/all.css\" integrity=\"sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU\" crossorigin=\"anonymous\" />\n"
             + "        <style>\n"
             + "            * {\n"
             + "                box-sizing: border-box;\n"
