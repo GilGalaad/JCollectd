@@ -17,10 +17,6 @@ public class ShutdownHook extends Thread {
     public void run() {
         logger.info("Received KILL signal, shutdown sequence initiated...");
         workerThread.interrupt();
-        try {
-            workerThread.join();
-        } catch (InterruptedException ex) {
-        }
     }
 
 }
