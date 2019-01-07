@@ -9,8 +9,8 @@
 name="jcollectd"
 rcvar="${name}_enable"
 desc="JCollectd java monitoring daemon"
+command="/usr/local/openjdk8/bin/java"
 start_cmd="${name}_start"
-procname="/usr/local/openjdk8/bin/java"
 pidfile="/var/run/${name}.pid"
 
 load_rc_config $name
@@ -18,7 +18,7 @@ load_rc_config $name
 
 jcollectd_start()
 {
-	nohup /usr/local/openjdk8/bin/java -XX:MaxMetaspaceSize=16m -Xms32m -Xmx32m \
+	nohup ${command} -XX:MaxMetaspaceSize=16m -Xms32m -Xmx32m \
 		-jar /store/maintenance/JCollectd/JCollectd.jar \
 		/store/maintenance/JCollectd/jcollectd.properties > /store/maintenance/JCollectd/jcollectd.log \
 		& echo $! > ${pidfile}
