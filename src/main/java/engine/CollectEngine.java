@@ -1,7 +1,7 @@
 package engine;
 
 import static common.CommonUtils.HOUR_MS;
-import static common.CommonUtils.prettyPrint;
+import static common.CommonUtils.smartElapsed;
 import common.exception.ExecutionException;
 import static engine.ReportUtils.optsCpuJs;
 import static engine.ReportUtils.optsDiskJs;
@@ -117,7 +117,7 @@ public class CollectEngine {
             doCollect();
             endCollectTime = System.nanoTime();
             if (log.isDebugEnabled()) {
-                log.debug("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+                log.debug("Collecting time: {}", smartElapsed(endCollectTime - startCollectTime));
             }
 
             // persisting timeseries
@@ -129,7 +129,7 @@ public class CollectEngine {
                 doPersist();
                 endPersistTime = System.nanoTime();
                 if (log.isDebugEnabled()) {
-                    log.debug("Persisting time: {} msec", prettyPrint((endPersistTime - startPersistTime) / 1000000L));
+                    log.debug("Persisting time: {}", smartElapsed(endPersistTime - startPersistTime));
                 }
             }
 
@@ -142,7 +142,7 @@ public class CollectEngine {
                 doReport();
                 endReportTime = System.nanoTime();
                 if (log.isDebugEnabled()) {
-                    log.debug("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+                    log.debug("Reporting time: {}", smartElapsed(endReportTime - startReportTime));
                 }
             }
 
@@ -156,7 +156,7 @@ public class CollectEngine {
                 doMaintenance();
                 endCleanTime = System.nanoTime();
                 if (log.isDebugEnabled()) {
-                    log.debug("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
+                    log.debug("Cleanup time: {}", smartElapsed(endCleanTime - startCleanTime));
                 }
             }
         }
@@ -329,10 +329,10 @@ public class CollectEngine {
         report = report.replace("XXX_JSDATA_XXX\n", createJavascript(fromTime));
         report = report.replace("XXX_BODY_XXX\n", createHmtlBody());
         report = report.replace("XXX_TIMINGS_XXX",
-                String.format("Time spent collecting samples: %,dms, writing samples: %,dms, generating report: %,dms",
-                        (endCollectTime - startCollectTime) / 1000000L,
-                        (endPersistTime - startPersistTime) / 1000000L,
-                        (System.nanoTime() - startReportTime) / 1000000L));
+                String.format("Time spent collecting samples: %s, writing samples: %s, generating report: %s",
+                        smartElapsed(endCollectTime - startCollectTime, 0),
+                        smartElapsed(endPersistTime - startPersistTime, 0),
+                        smartElapsed(System.nanoTime() - startReportTime, 0)));
 
         // writing to file
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING})) {
