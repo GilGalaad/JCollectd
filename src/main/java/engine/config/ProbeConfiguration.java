@@ -1,5 +1,10 @@
 package engine.config;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter @Setter @ToString
 public class ProbeConfiguration {
 
     public enum ProbeType {
@@ -32,22 +37,6 @@ public class ProbeConfiguration {
         this.chSize = gsize;
         this.device = deviceName;
         this.label = label;
-    }
-
-    public ProbeType getPrType() {
-        return prType;
-    }
-
-    public ChartSize getChSize() {
-        return chSize;
-    }
-
-    public String getDevice() {
-        return device;
-    }
-
-    public String getLabel() {
-        return label;
     }
 
 }

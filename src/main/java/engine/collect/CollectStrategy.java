@@ -1,5 +1,6 @@
 package engine.collect;
 
+import common.exception.ExecutionException;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
 import engine.sample.LoadRawSample;
@@ -8,14 +9,14 @@ import engine.sample.NetRawSample;
 
 public interface CollectStrategy {
 
-    LoadRawSample collectLoadAvg();
+    LoadRawSample collectLoadAvg() throws ExecutionException;
 
-    CpuRawSample collectCpu();
+    CpuRawSample collectCpu() throws ExecutionException;
 
-    MemRawSample collectMem();
+    MemRawSample collectMem() throws ExecutionException;
 
-    NetRawSample collectNet(String interfaceName);
+    NetRawSample collectNet(String interfaceName) throws ExecutionException;
 
-    DiskRawSample collectDisk(String deviceName);
+    DiskRawSample collectDisk(String deviceName) throws ExecutionException;
 
 }

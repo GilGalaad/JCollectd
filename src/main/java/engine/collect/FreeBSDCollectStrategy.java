@@ -1,6 +1,7 @@
 package engine.collect;
 
-import static engine.CommonUtils.isEmpty;
+import static common.CommonUtils.isEmpty;
+import common.exception.ExecutionException;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
 import engine.sample.LoadRawSample;
@@ -15,7 +16,7 @@ import java.math.RoundingMode;
 public class FreeBSDCollectStrategy implements CollectStrategy {
 
     @Override
-    public LoadRawSample collectLoadAvg() {
+    public LoadRawSample collectLoadAvg() throws ExecutionException {
         LoadRawSample ret = new LoadRawSample();
         try {
             Process p = new ProcessBuilder("sysctl", "vm.loadavg").redirectErrorStream(true).start();
@@ -27,13 +28,13 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 ret.setLoad15minute(new BigDecimal(split[4]));
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running sysctl", ex);
         }
         return ret;
     }
 
     @Override
-    public CpuRawSample collectCpu() {
+    public CpuRawSample collectCpu() throws ExecutionException {
         CpuRawSample ret = new CpuRawSample();
         // since the first word of line is always the sysctl name
         // values are: user, nice, system, interrupt, idle
@@ -50,13 +51,13 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 ret.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running sysctl", ex);
         }
         return ret;
     }
 
     @Override
-    public MemRawSample collectMem() {
+    public MemRawSample collectMem() throws ExecutionException {
         MemRawSample ret = new MemRawSample();
         try {
             Process p = new ProcessBuilder("sysctl", "vm.stats.vm.v_page_size", "vm.stats.vm.v_active_count", "vm.stats.vm.v_wire_count", "vm.stats.vm.v_cache_count", "kstat.zfs.misc.arcstats.size").redirectErrorStream(true).start();
@@ -86,7 +87,7 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 ret.setCacheUsed(cache * pageSize + arc);
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading sysctl, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running sysctl", ex);
         }
         try {
             Process p = new ProcessBuilder("sh", "-c", "swapinfo -k | grep -vi device | grep -vi total | cut -wf3").redirectErrorStream(true).start();
@@ -101,13 +102,13 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 ret.setSwapUsed(swap);
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while executing swapinfo, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running swapinfo", ex);
         }
         return ret;
     }
 
     @Override
-    public NetRawSample collectNet(String interfaceName) {
+    public NetRawSample collectNet(String interfaceName) throws ExecutionException {
         NetRawSample ret = new NetRawSample();
         ret.setInterfaceName(interfaceName);
         try {
@@ -122,13 +123,13 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 }
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while executing 'swapinfo', aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running netstat", ex);
         }
         return ret;
     }
 
     @Override
-    public DiskRawSample collectDisk(String deviceName) {
+    public DiskRawSample collectDisk(String deviceName) throws ExecutionException {
         DiskRawSample ret = new DiskRawSample();
         ret.setDeviceName(deviceName);
         String[] devList = deviceName.split("\\+");
@@ -150,7 +151,7 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 }
             }
         } catch (IOException | InterruptedException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while executing 'swapinfo', aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while running iostat", ex);
         }
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);

@@ -1,6 +1,9 @@
 package engine;
 
-public class ReportUtils {
+public final class ReportUtils {
+
+    private ReportUtils() {
+    }
 
     protected static final String templateHtml = "<!DOCTYPE html>\n"
             + "<html lang=\"en\">\n"

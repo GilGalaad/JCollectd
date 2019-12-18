@@ -2,7 +2,7 @@ package engine.db.sqlite;
 
 import engine.config.CollectConfiguration;
 import engine.db.DatabaseStrategy;
-import engine.db.TbProbeSeries;
+import engine.db.model.TbProbeSeries;
 import static engine.db.sqlite.SqliteUtils.ANALYZE;
 import static engine.db.sqlite.SqliteUtils.BEGIN_TRANS;
 import static engine.db.sqlite.SqliteUtils.CREATE_IDX_STMT;
@@ -39,7 +39,7 @@ public class SqliteStrategy implements DatabaseStrategy {
         try {
             Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while loading Sqlite JDBC driver, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new UnsupportedOperationException("Error while loading Sqlite JDBC driver", ex);
         }
     }
 

@@ -1,15 +1,14 @@
-package main;
+package engine;
 
-import static engine.CommonUtils.isEmpty;
+import static common.CommonUtils.isEmpty;
+import common.exception.ConfigurationException;
 import engine.config.CollectConfiguration;
 import static engine.config.CollectConfiguration.DbEngine.SQLITE;
 import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
 import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 import engine.config.ProbeConfiguration;
-import engine.exception.ConfigurationException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
@@ -18,14 +17,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class ConfigurationParser {
 
-    public static final Logger logger = LogManager.getLogger();
+    public static CollectConfiguration parse(String[] args) throws ConfigurationException {
+        if (args.length < 1) {
+            throw new ConfigurationException("Please provide path to configuration file as parameter");
+        }
 
-    protected static CollectConfiguration parse(String arg) throws ConfigurationException {
         CollectConfiguration conf = new CollectConfiguration();
         String propValue;
 
@@ -35,44 +36,44 @@ public class ConfigurationParser {
         } else if (System.getProperty("os.name").equals("Linux")) {
             conf.setOs(LINUX);
         } else {
-            throw new ConfigurationException(String.format("Unsupported platform: %s, aborting", System.getProperty("os.name")));
+            throw new ConfigurationException(String.format("Unsupported platform: %s", System.getProperty("os.name")));
         }
 
         // loading parameters
         Properties prop = new Properties();
-        try (FileInputStream in = new FileInputStream(arg)) {
+        try (FileInputStream in = new FileInputStream(args[0])) {
             prop.load(in);
-        } catch (IOException ex) {
-            throw new ConfigurationException("Configuration file not found or not readable at specified path, aborting", ex);
+        } catch (Exception ex) {
+            throw new ConfigurationException("Configuration file not found or not readable at specified path", ex);
         }
 
         // parsing and sanitizing global properties
-        // Sqlite is the only supported database at the moment
+        // SQLite is the only supported database at the moment
         conf.setDbEngine(SQLITE);
 
         propValue = prop.getProperty("dbPath");
         if (isEmpty(propValue)) {
-            throw new ConfigurationException("Mandatory parameter 'dbPath' not found in configuration file, aborting", null);
+            throw new ConfigurationException("Mandatory parameter 'dbPath' not found in configuration file", null);
         } else {
             propValue = propValue.trim();
             try {
-                Path p = Paths.get(propValue);
+                Path p = Paths.get(propValue).normalize();
                 if (p.getParent() != null) {
                     File f = p.getParent().toFile();
                     if (!f.exists() || !f.isDirectory() || !f.canWrite()) {
-                        throw new ConfigurationException("Parameter 'dbPath' set to non existent or non writable directory, aborting");
+                        throw new ConfigurationException("Parameter 'dbPath' set to non existent or non writable directory");
                     }
                 }
-                logger.info("Parameter dbpath -> {}", p.toString());
+                log.info("Parameter dbpath -> {}", p.toString());
                 conf.setDbPath(p);
             } catch (RuntimeException ex) {
-                throw new ConfigurationException("Parameter 'dbpath' set to an illegal value, aborting", ex);
+                throw new ConfigurationException("Parameter 'dbpath' set to an illegal value", ex);
             }
         }
 
         propValue = prop.getProperty("webPath");
         if (isEmpty(propValue)) {
-            logger.info("Parameter webpath -> HTML report disabled");
+            log.info("Parameter webpath -> HTML report disabled");
             conf.setWebPath(null);
         } else {
             propValue = propValue.trim();
@@ -81,13 +82,13 @@ public class ConfigurationParser {
                 if (p.getParent() != null) {
                     File f = p.getParent().toFile();
                     if (!f.exists() || !f.isDirectory() || !f.canWrite()) {
-                        throw new ConfigurationException("Parameter 'webPath' set to non existent or non writable directory, aborting");
+                        throw new ConfigurationException("Parameter 'webPath' set to non existent or non writable directory");
                     }
                 }
-                logger.info("Parameter webpath -> {}", p.toString());
+                log.info("Parameter webpath -> {}", p.toString());
                 conf.setWebPath(p);
             } catch (RuntimeException ex) {
-                throw new ConfigurationException("Parameter 'webPath' set to an illegal value, aborting", ex);
+                throw new ConfigurationException("Parameter 'webPath' set to an illegal value", ex);
             }
         }
 
@@ -95,64 +96,64 @@ public class ConfigurationParser {
         if (isEmpty(propValue)) {
             try {
                 String hostname = InetAddress.getLocalHost().getHostName();
-                logger.info("Parameter hostname -> {} (autodiscovered)", hostname);
+                log.info("Parameter hostname -> {} (autodiscovered)", hostname);
                 conf.setHostname(hostname);
             } catch (UnknownHostException ex) {
-                logger.info("Parameter hostname -> localhost (autodiscovery failed)");
+                log.info("Parameter hostname -> localhost (autodiscovery failed)");
                 conf.setHostname("localhost");
             }
         } else {
-            logger.info("Parameter hostname -> {}", propValue.trim());
+            log.info("Parameter hostname -> {}", propValue.trim());
             conf.setHostname(propValue.trim());
         }
 
         propValue = (prop.getProperty("reportHours"));
         if (isEmpty(propValue)) {
-            logger.info("Parameter reportHours -> {} (default)", 12);
+            log.info("Parameter reportHours -> {} (default)", 12);
             conf.setReportHours(12);
         } else {
             try {
                 int reportHours = Integer.parseUnsignedInt(propValue.trim());
-                logger.info("Parameter reportHours -> {}", reportHours);
+                log.info("Parameter reportHours -> {}", reportHours);
                 conf.setReportHours(reportHours);
             } catch (NumberFormatException ex) {
-                throw new ConfigurationException("Parameter 'reportHours' set to an illegal value, aborting", ex);
+                throw new ConfigurationException("Parameter 'reportHours' set to an illegal value", ex);
             }
         }
 
         propValue = (prop.getProperty("retentionHours"));
         if (isEmpty(propValue)) {
-            logger.info("Parameter retentionHours -> {} (defaulting to reportHours)", conf.getReportHours());
+            log.info("Parameter retentionHours -> {} (defaulting to reportHours)", conf.getReportHours());
             conf.setRetentionHours(conf.getReportHours());
         } else {
             try {
                 int retentionHours = Integer.parseInt(propValue.trim());
                 if (retentionHours >= conf.getReportHours()) {
-                    logger.info("Parameter retentionHours -> {}", retentionHours);
+                    log.info("Parameter retentionHours -> {}", retentionHours);
                     conf.setRetentionHours(retentionHours);
                 } else if (retentionHours >= 0 && retentionHours < conf.getReportHours()) {
-                    logger.info("Parameter retentionHours -> {} (ceiling to reportHours)", conf.getReportHours());
+                    log.info("Parameter retentionHours -> {} (ceiling to reportHours)", conf.getReportHours());
                     conf.setRetentionHours(conf.getReportHours());
                 } else {
-                    logger.info("Parameter retentionHours -> database cleanup disabled", conf.getReportHours());
+                    log.info("Parameter retentionHours -> database cleanup disabled", conf.getReportHours());
                     conf.setRetentionHours(-1);
                 }
             } catch (NumberFormatException ex) {
-                throw new ConfigurationException("Parameter 'retentionHours' set to an illegal value, aborting", ex);
+                throw new ConfigurationException("Parameter 'retentionHours' set to an illegal value", ex);
             }
         }
 
         propValue = (prop.getProperty("interval"));
         if (isEmpty(propValue)) {
-            logger.info("Parameter interval -> {} (default)", 60);
+            log.info("Parameter interval -> {} (default)", 60);
             conf.setInterval(60);
         } else {
             try {
                 int interval = Integer.parseUnsignedInt(propValue.trim());
-                logger.info("Parameter interval -> {}", interval);
+                log.info("Parameter interval -> {}", interval);
                 conf.setInterval(interval);
             } catch (NumberFormatException ex) {
-                throw new ConfigurationException("Parameter 'interval' set to an illegal value, aborting", ex);
+                throw new ConfigurationException("Parameter 'interval' set to an illegal value", ex);
             }
         }
 
@@ -165,40 +166,45 @@ public class ConfigurationParser {
                 plist.add(p);
             }
         }
-        Collections.sort(plist);
+        Collections.sort(plist, (s1, s2) -> {
+            Integer idx1 = Integer.parseInt(s1.substring(s1.indexOf(".") + 1, s1.lastIndexOf(".")));
+            Integer idx2 = Integer.parseInt(s2.substring(s2.indexOf(".") + 1, s2.lastIndexOf(".")));
+            return idx1.compareTo(idx2);
+        });
         ArrayList<ProbeConfiguration> probeConfList = new ArrayList<>(plist.size());
         conf.setProbeConfigList(probeConfList);
-        logger.info("Found {} probe definitions", plist.size());
+        log.info("Found {} probe definitions", plist.size());
         for (int i = 0; i < plist.size(); i++) {
-            String[] split = plist.get(i).split("\\.");
-            int idx = Integer.parseInt(split[1]);
+            // idx is 1-based probe number
+            int idx = Integer.parseInt(plist.get(i).substring(plist.get(i).indexOf(".") + 1, plist.get(i).lastIndexOf(".")));
             if (idx != i + 1) {
-                throw new ConfigurationException(String.format("Illegal probe list: probe #%s missing, aborting", i + 1));
+                throw new ConfigurationException(String.format("Probe #%s missing", i + 1));
             }
+
             propValue = prop.getProperty(plist.get(i));
             if (isEmpty(propValue)) {
-                throw new ConfigurationException(String.format("Illegal probe list: probe #%s undefined type, aborting", i + 1));
+                throw new ConfigurationException(String.format("Probe #%s undefined type", idx));
             } else if (propValue.equalsIgnoreCase("load")) {
-                logger.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.LOAD, getGraphSize(prop, idx));
+                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.LOAD, getGraphSize(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.LOAD, getGraphSize(prop, idx)));
             } else if (propValue.equalsIgnoreCase("cpu")) {
-                logger.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.CPU, getGraphSize(prop, idx));
+                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.CPU, getGraphSize(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.CPU, getGraphSize(prop, idx)));
             } else if (propValue.equalsIgnoreCase("mem")) {
-                logger.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.MEM, getGraphSize(prop, idx));
+                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.MEM, getGraphSize(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.MEM, getGraphSize(prop, idx)));
             } else if (propValue.equalsIgnoreCase("net")) {
-                logger.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx),
+                log.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx),
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx),
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx)));
             } else if (propValue.equalsIgnoreCase("disk")) {
-                logger.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
+                log.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx)));
             } else {
-                throw new ConfigurationException(String.format("Unsupported probe #%s type: %s, aborting", idx, propValue));
+                throw new ConfigurationException(String.format("Probe #%s unsupported type", idx));
             }
         }
         return conf;
@@ -211,14 +217,14 @@ public class ConfigurationParser {
         } else if (gsize.trim().equalsIgnoreCase("half")) {
             return ProbeConfiguration.ChartSize.HALF_SIZE;
         } else {
-            throw new ConfigurationException(String.format("Unsupported probe #%s size: %s, aborting", idx, gsize));
+            throw new ConfigurationException(String.format("Probe #%s unsupported size", idx));
         }
     }
 
     private static String getProbeDevice(Properties prop, int idx) throws ConfigurationException {
         String device = prop.getProperty("probe." + idx + ".device");
         if (isEmpty(device)) {
-            throw new ConfigurationException(String.format("Illegal probe list: probe #%s requires mandatory device name, aborting", idx));
+            throw new ConfigurationException(String.format("Probe #%s requires mandatory device name", idx));
         } else {
             return device.trim();
         }
@@ -227,7 +233,7 @@ public class ConfigurationParser {
     private static String getProbeDeviceList(Properties prop, int idx) throws ConfigurationException {
         String device = prop.getProperty("probe." + idx + ".device");
         if (isEmpty(device) || isEmpty(device.replaceAll("\\+", ""))) {
-            throw new ConfigurationException(String.format("Illegal probe list: probe #%s requires mandatory device name, aborting", idx));
+            throw new ConfigurationException(String.format("Probe #%s requires mandatory device name", idx));
         } else {
             return device.trim().replaceAll("\\s", "");
         }

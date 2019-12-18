@@ -1,6 +1,7 @@
 package engine.collect;
 
-import static engine.CommonUtils.isEmpty;
+import static common.CommonUtils.isEmpty;
+import common.exception.ExecutionException;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
 import engine.sample.LoadRawSample;
@@ -14,7 +15,7 @@ import java.math.BigDecimal;
 public class LinuxCollectStrategy implements CollectStrategy {
 
     @Override
-    public LoadRawSample collectLoadAvg() {
+    public LoadRawSample collectLoadAvg() throws ExecutionException {
         LoadRawSample ret = new LoadRawSample();
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/loadavg"))) {
             String[] split = br.readLine().split("\\s+");
@@ -22,13 +23,13 @@ public class LinuxCollectStrategy implements CollectStrategy {
             ret.setLoad5minute(new BigDecimal(split[1]));
             ret.setLoad15minute(new BigDecimal(split[2]));
         } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while reading /proc virtual filesystem", ex);
         }
         return ret;
     }
 
     @Override
-    public CpuRawSample collectCpu() {
+    public CpuRawSample collectCpu() throws ExecutionException {
         CpuRawSample ret = new CpuRawSample();
         // since the first word of line is 'cpu', numbers start from split[1]
         // 4th value is idle, 5th is iowait
@@ -41,13 +42,13 @@ public class LinuxCollectStrategy implements CollectStrategy {
             ret.setTotalTime(total);
             ret.setIdleTime(Long.parseLong(split[4]) + Long.parseLong(split[5]));
         } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while reading /proc virtual filesystem", ex);
         }
         return ret;
     }
 
     @Override
-    public MemRawSample collectMem() {
+    public MemRawSample collectMem() throws ExecutionException {
         MemRawSample ret = new MemRawSample();
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
             String line;
@@ -72,13 +73,13 @@ public class LinuxCollectStrategy implements CollectStrategy {
             ret.setSwapUsed(swapTotal - swapFree);
             ret.setCacheUsed(cached);
         } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while reading /proc virtual filesystem", ex);
         }
         return ret;
     }
 
     @Override
-    public NetRawSample collectNet(String interfaceName) {
+    public NetRawSample collectNet(String interfaceName) throws ExecutionException {
         NetRawSample ret = new NetRawSample();
         ret.setInterfaceName(interfaceName);
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/net/dev"))) {
@@ -94,13 +95,13 @@ public class LinuxCollectStrategy implements CollectStrategy {
                 break;
             }
         } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while reading /proc virtual filesystem", ex);
         }
         return ret;
     }
 
     @Override
-    public DiskRawSample collectDisk(String deviceName) {
+    public DiskRawSample collectDisk(String deviceName) throws ExecutionException {
         DiskRawSample ret = new DiskRawSample();
         ret.setDeviceName(deviceName);
         String[] devList = deviceName.split("\\+");
@@ -119,7 +120,7 @@ public class LinuxCollectStrategy implements CollectStrategy {
                 }
             }
         } catch (IOException ex) {
-            throw new RuntimeException(String.format("Unexpected %s while reading /proc virtual filesystem, aborting - %s", ex.getClass().getSimpleName(), ex.getMessage()), ex);
+            throw new ExecutionException("Unexpected error while reading /proc virtual filesystem", ex);
         }
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);

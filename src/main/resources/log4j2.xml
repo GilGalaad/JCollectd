@@ -10,8 +10,8 @@
         </Console>
     </appenders>
     <loggers>
-        <root level="ALL">
-            <appender-ref ref="Console" level="INFO"/>
+        <root level="INFO">
+            <appender-ref ref="Console" level="ALL"/>
         </root>
     </loggers>
 </configuration>

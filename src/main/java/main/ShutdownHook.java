@@ -1,11 +1,9 @@
 package main;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class ShutdownHook extends Thread {
-
-    public static final Logger logger = LogManager.getLogger();
 
     private final Thread workerThread;
 
@@ -15,7 +13,7 @@ public class ShutdownHook extends Thread {
 
     @Override
     public void run() {
-        logger.info("Received KILL signal, shutdown sequence initiated...");
+        log.info("Received KILL signal, shutdown sequence initiated...");
         workerThread.interrupt();
     }
 

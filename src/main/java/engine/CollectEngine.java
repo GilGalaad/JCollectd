@@ -1,7 +1,8 @@
 package engine;
 
-import static engine.CommonUtils.HOUR_MS;
-import static engine.CommonUtils.prettyPrint;
+import static common.CommonUtils.HOUR_MS;
+import static common.CommonUtils.prettyPrint;
+import common.exception.ExecutionException;
 import static engine.ReportUtils.optsCpuJs;
 import static engine.ReportUtils.optsDiskJs;
 import static engine.ReportUtils.optsLoadJs;
@@ -18,9 +19,8 @@ import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 import engine.config.ProbeConfiguration;
 import engine.config.ProbeConfiguration.ProbeType;
 import engine.db.DatabaseStrategy;
-import engine.db.TbProbeSeries;
+import engine.db.model.TbProbeSeries;
 import engine.db.sqlite.SqliteStrategy;
-import engine.exception.ExecutionException;
 import engine.sample.CollectResult;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
@@ -43,12 +43,10 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class CollectEngine {
-
-    private static final Logger logger = LogManager.getLogger();
 
     private final CollectConfiguration conf;
     private final long samplingInterval;
@@ -83,31 +81,32 @@ public class CollectEngine {
         } else if (conf.getOs() == LINUX) {
             collectStrategy = new LinuxCollectStrategy();
         } else {
-            throw new UnsupportedOperationException(String.format("Unsupported Operating System: %s, aborting", conf.getOs()));
+            throw new UnsupportedOperationException(String.format("Unsupported Operating System: %s", conf.getOs()));
         }
 
         if (conf.getDbEngine() == SQLITE) {
             databaseStrategy = new SqliteStrategy(conf);
         } else {
-            throw new UnsupportedOperationException(String.format("Unsupported Database engine: %s, aborting", conf.getDbEngine()));
+            throw new UnsupportedOperationException(String.format("Unsupported Database engine: %s", conf.getDbEngine()));
         }
     }
 
     public void run() throws ExecutionException {
-        logger.info("Entering in main loop");
+        log.info("Entering in main loop");
         while (true) {
             // waiting for next schedule
             try {
                 Thread.sleep((samplingInterval - (System.currentTimeMillis() % samplingInterval)) % samplingInterval);
             } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
                 return;
             }
 
             // making room for new samples
             prevResult = curResult;
             curResult = new CollectResult(conf.getProbeConfigList().size());
-            if (logger.isDebugEnabled()) {
-                logger.debug("Worker thread wake up at {}", sdfHtml.format(curResult.getCollectTms()));
+            if (log.isDebugEnabled()) {
+                log.debug("Worker thread wake up at {}", sdfHtml.format(curResult.getCollectTms()));
             }
 
             // collecting samples
@@ -117,8 +116,8 @@ public class CollectEngine {
             startCollectTime = System.nanoTime();
             doCollect();
             endCollectTime = System.nanoTime();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
+            if (log.isDebugEnabled()) {
+                log.debug("Collecting time: {} msec", prettyPrint((endCollectTime - startCollectTime) / 1000000L));
             }
 
             // persisting timeseries
@@ -129,8 +128,8 @@ public class CollectEngine {
                 startPersistTime = System.nanoTime();
                 doPersist();
                 endPersistTime = System.nanoTime();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Persisting time: {} msec", prettyPrint((endPersistTime - startPersistTime) / 1000000L));
+                if (log.isDebugEnabled()) {
+                    log.debug("Persisting time: {} msec", prettyPrint((endPersistTime - startPersistTime) / 1000000L));
                 }
             }
 
@@ -142,8 +141,8 @@ public class CollectEngine {
                 startReportTime = System.nanoTime();
                 doReport();
                 endReportTime = System.nanoTime();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
+                if (log.isDebugEnabled()) {
+                    log.debug("Reporting time: {} msec", prettyPrint((endReportTime - startReportTime) / 1000000L));
                 }
             }
 
@@ -156,15 +155,15 @@ public class CollectEngine {
                 startCleanTime = System.nanoTime();
                 doMaintenance();
                 endCleanTime = System.nanoTime();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
+                if (log.isDebugEnabled()) {
+                    log.debug("Cleanup time: {} msec", prettyPrint((endCleanTime - startCleanTime) / 1000000L));
                 }
             }
         }
     }
 
     // parsing data from Operating System
-    private void doCollect() {
+    private void doCollect() throws ExecutionException {
         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
             if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectLoadAvg());
@@ -177,10 +176,10 @@ public class CollectEngine {
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectDisk(conf.getProbeConfigList().get(i).getDevice()));
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
             }
-            if (logger.isTraceEnabled()) {
-                logger.trace(curResult.getProbeRawSampleList().get(i).toString());
+            if (log.isTraceEnabled()) {
+                log.trace(curResult.getProbeRawSampleList().get(i).toString());
             }
         }
     }
@@ -192,7 +191,7 @@ public class CollectEngine {
             databaseStrategy.prepareSchema(conn);
             databaseStrategy.persistTimeseries(conn, tmsList);
         } catch (SQLException ex) {
-            throw new ExecutionException(String.format("Error while saving samples to DB, aborting - %s", ex.getMessage()), ex);
+            throw new ExecutionException("Error while persisting samples to DB", ex);
         }
     }
 
@@ -307,11 +306,11 @@ public class CollectEngine {
                 s2.setSampleValue(write);
                 series.add(s2);
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
             }
         }
-        if (logger.isTraceEnabled()) {
-            series.forEach((s) -> logger.trace(s));
+        if (log.isTraceEnabled()) {
+            series.forEach((s) -> log.trace(s));
         }
         return series;
     }
@@ -339,7 +338,7 @@ public class CollectEngine {
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING})) {
             bw.write(report);
         } catch (IOException ex) {
-            throw new ExecutionException(String.format("I/O error while generating HTML report, aborting - %s", ex.getMessage()), ex);
+            throw new ExecutionException("I/O error while writing HTML report", ex);
         }
     }
 
@@ -353,7 +352,7 @@ public class CollectEngine {
             } else if (conf.getProbeConfigList().get(i).getChSize() == ProbeConfiguration.ChartSize.HALF_SIZE) {
                 sb.append("half-size");
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported chart size: %s, aborting", conf.getProbeConfigList().get(i).getChSize()));
+                throw new UnsupportedOperationException(String.format("Unsupported chart size: %s", conf.getProbeConfigList().get(i).getChSize()));
             }
             sb.append("\"></div>").append(System.lineSeparator());
         }
@@ -376,11 +375,11 @@ public class CollectEngine {
                 } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
                     sb.append(createDiskCallback(i, conn, fromTime));
                 } else {
-                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s, aborting", conf.getProbeConfigList().get(i).getPrType()));
+                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
                 }
             }
         } catch (SQLException ex) {
-            throw new ExecutionException(String.format("Error while reading timeseries from DB, aborting - %s", ex.getMessage()), ex);
+            throw new ExecutionException("Error while reading samples from DB", ex);
         }
         return sb.toString();
     }
@@ -494,7 +493,7 @@ public class CollectEngine {
             }
             databaseStrategy.doMaintenance(conn);
         } catch (SQLException ex) {
-            throw new ExecutionException(String.format("Error while doing Database maintenance, aborting - %s", ex.getMessage()), ex);
+            throw new ExecutionException("Error while doing DB maintenance", ex);
         }
     }
 

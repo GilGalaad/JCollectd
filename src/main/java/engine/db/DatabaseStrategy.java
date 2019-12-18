@@ -1,5 +1,6 @@
 package engine.db;
 
+import engine.db.model.TbProbeSeries;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;

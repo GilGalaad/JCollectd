@@ -1,6 +1,9 @@
 package engine.db.sqlite;
 
-public class SqliteUtils {
+public final class SqliteUtils {
+
+    private SqliteUtils() {
+    }
 
     protected static final String CREATE_TB_STMT = "CREATE TABLE IF NOT EXISTS tb_probe_series (\n"
             + "id_sample INTEGER PRIMARY KEY,\n"
