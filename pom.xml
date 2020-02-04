@@ -15,7 +15,7 @@
         <!-- dependencies -->
         <lombok.version>1.18.10</lombok.version>
         <log4j.version>2.13.0</log4j.version>
-        <sqlite-jdbc.version>3.28.0</sqlite-jdbc.version>
+        <sqlite-jdbc.version>3.30.1</sqlite-jdbc.version>
     </properties>
 
     <build>
