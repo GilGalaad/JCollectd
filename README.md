@@ -30,10 +30,11 @@ Supported general options are:
 After setting general option, you can configure an arbitrary number of probes. Each probe must be defined by a `probe.N.type` property, where N is a progressive number, starting by 1.
 Each probe definition can have one of the following values:
 * `load`: enables the Average Load sampling
-* `cpu`: enables the Cpu percent utilization sampling
+* `cpu`: enables the CPU percent utilization sampling
 * `mem`: enables the Memory, Swap and Cache sampling
 * `net`: enables the Network Traffic sampling
 * `disk`: enables the Hard Disk usage sampling
+* `gpu`: enables the GPU usage sampling (only Nvidia is supported, and `nvidia-smi` must be installed)
 
 Each probe can have an optional property `probe.N.size` which can assume the following values:
 * `full`: for a full width chart (which is the default)
@@ -50,13 +51,17 @@ FreeBSD instead, provides I/O values for each block device but not totals for ZF
 There is a simple sanity check on probe configuration (for example on mandatory parameters, and probe numbering), but I am sure you can shoot yourself in the leg if you try enough.
 
 ## Usage
-Simply execute the jar in background, with a line like this (assuming `/jdk1.8` is your `$JAVA_HOME`)
+Simply execute the jar in background, with a line like this (assuming `/jdk8` is your `$JAVA_HOME`)
 ```
-nohup /jdk1.8/bin/java -XX:MaxMetaspaceSize=16m -Xms32m -Xmx32m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
+nohup /jdk8/bin/java -XX:MaxMetaspaceSize=16m -Xms32m -Xmx32m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
 ```
 The output report will be produced at the location specified in configuration file, ready to be served by the httpd daemon of your choice. The result will be something like this:
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
 
+## Run as service
+In the `etc` folder you will find examples to run JCollectd as OS service, in `rc` and `s` there are simple rc script and systemd unit files for integration with FreeBSD and Linux init system, respectively.
+
+## Notes
 Worths to say that:
 * the memory footprint is relatively low, a few MB of heap size is enough to run the daemon with a reasonable configuration, but you may want to raise maximum heap size to something more (like 32m) to alleviate pressure on garbage collection.
 * even with a very low heap, some memory will be consumed by internal mechanisms of sqlite memory allocation, this will be native memory and cannot be tuned via Java parameters.
@@ -65,8 +70,9 @@ Worths to say that:
 * there is no need for a complex init script. You can start the daemon with the provdided command at boot, and a proper signal handler will ensure a clean shutdown in case of a `KILL` signal.
 
 ## TODO
-* ~~Add support for FreeBSD platform.~~ Done.
-* ~~Make the sampling rate (currently 60 seconds) user configurable.~~ Done.
+* ~~Add support for FreeBSD platform~~ Done
+* ~~Make the sampling rate (currently 60 seconds) user configurable~~ Done
 * Add support for more RDBMS, like [PostgreSQL](https://www.postgresql.org/)
+* ~~Add GPU support~~ Done
 
 #### Contributions, critics, suggestions are always welcome. Cheers!
