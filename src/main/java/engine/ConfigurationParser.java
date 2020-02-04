@@ -203,6 +203,9 @@ public class ConfigurationParser {
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx));
                 probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
                         !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx)));
+            } else if (propValue.equalsIgnoreCase("gpu")) {
+                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.GPU, getGraphSize(prop, idx));
+                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.GPU, getGraphSize(prop, idx)));
             } else {
                 throw new ConfigurationException(String.format("Probe #%s unsupported type", idx));
             }

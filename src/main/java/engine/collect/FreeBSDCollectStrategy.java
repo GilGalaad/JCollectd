@@ -4,6 +4,7 @@ import static common.CommonUtils.isEmpty;
 import common.exception.ExecutionException;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
+import engine.sample.GpuRawSample;
 import engine.sample.LoadRawSample;
 import engine.sample.MemRawSample;
 import engine.sample.NetRawSample;
@@ -156,6 +157,11 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);
         return ret;
+    }
+
+    @Override
+    public GpuRawSample collectGpu() throws ExecutionException {
+        throw new ExecutionException("GPU probe type not supported on this platform");
     }
 
 }

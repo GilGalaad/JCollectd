@@ -6,6 +6,7 @@ import engine.sample.DiskRawSample;
 import engine.sample.LoadRawSample;
 import engine.sample.MemRawSample;
 import engine.sample.NetRawSample;
+import engine.sample.GpuRawSample;
 
 public interface CollectStrategy {
 
@@ -18,5 +19,7 @@ public interface CollectStrategy {
     NetRawSample collectNet(String interfaceName) throws ExecutionException;
 
     DiskRawSample collectDisk(String deviceName) throws ExecutionException;
+
+    GpuRawSample collectGpu() throws ExecutionException;
 
 }

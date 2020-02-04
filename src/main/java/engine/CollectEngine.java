@@ -5,6 +5,7 @@ import static common.CommonUtils.smartElapsed;
 import common.exception.ExecutionException;
 import static engine.ReportUtils.optsCpuJs;
 import static engine.ReportUtils.optsDiskJs;
+import static engine.ReportUtils.optsGpuJs;
 import static engine.ReportUtils.optsLoadJs;
 import static engine.ReportUtils.optsMemJs;
 import static engine.ReportUtils.optsNetJs;
@@ -24,6 +25,7 @@ import engine.db.sqlite.SqliteStrategy;
 import engine.sample.CollectResult;
 import engine.sample.CpuRawSample;
 import engine.sample.DiskRawSample;
+import engine.sample.GpuRawSample;
 import engine.sample.LoadRawSample;
 import engine.sample.MemRawSample;
 import engine.sample.NetRawSample;
@@ -175,6 +177,8 @@ public class CollectEngine {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectNet(conf.getProbeConfigList().get(i).getDevice()));
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectDisk(conf.getProbeConfigList().get(i).getDevice()));
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectGpu());
             } else {
                 throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
             }
@@ -305,6 +309,15 @@ public class CollectEngine {
                 BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
                 s2.setSampleValue(write);
                 series.add(s2);
+            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+                GpuRawSample cs = (GpuRawSample) curResult.getProbeRawSampleList().get(i);
+                TbProbeSeries s = new TbProbeSeries();
+                s.setHostname(conf.getHostname());
+                s.setProbeType("gpu");
+                s.setDevice(null);
+                s.setSampleTms(curResult.getCollectTms());
+                s.setSampleValue(cs.getLoad());
+                series.add(s);
             } else {
                 throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
             }
@@ -374,6 +387,8 @@ public class CollectEngine {
                     sb.append(createNetCallback(i, conn, fromTime));
                 } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
                     sb.append(createDiskCallback(i, conn, fromTime));
+                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+                    sb.append(createGpuCallback(i, conn, fromTime));
                 } else {
                     throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
                 }
@@ -483,6 +498,25 @@ public class CollectEngine {
         sb.append("chart.draw(data, options);").append(System.lineSeparator());
         sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString().replace("REPLACEME", conf.getProbeConfigList().get(idx).getLabel());
+    }
+
+    private String createGpuCallback(int idx, Connection conn, Date fromTime) throws SQLException {
+        // callback definition
+        StringBuilder sb = new StringBuilder();
+        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        // datatable and values from timeseries
+        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append("data.addColumn('number', 'GPU');").append(System.lineSeparator());
+        sb.append(databaseStrategy.readGpuJsData(conn, conf.getHostname(), fromTime));
+        // options
+        sb.append(optsGpuJs).append(System.lineSeparator());
+        // draw chart
+        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        return sb.toString();
     }
 
     private void doMaintenance() throws ExecutionException {

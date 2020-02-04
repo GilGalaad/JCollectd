@@ -84,4 +84,12 @@ public final class SqliteUtils {
             + "AND sample_tms > ?\n"
             + "GROUP BY sample_tms ORDER BY sample_tms";
 
+    protected static final String SELECT_GPU = "SELECT sample_tms, sample_value\n"
+            + "FROM tb_probe_series\n"
+            + "WHERE hostname = ?\n"
+            + "AND probe_type = 'gpu'\n"
+            + "AND device IS NULL\n"
+            + "AND sample_tms > ?\n"
+            + "ORDER BY sample_tms";
+
 }

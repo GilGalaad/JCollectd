@@ -12,7 +12,8 @@ public class ProbeConfiguration {
         CPU,
         MEM,
         NET,
-        DISK
+        DISK,
+        GPU
     }
 
     public enum ChartSize {

@@ -24,6 +24,8 @@ public interface DatabaseStrategy {
 
     String readDiskJsData(Connection conn, String hostname, String device, Date fromTime) throws SQLException;
 
+    String readGpuJsData(Connection conn, String hostname, Date fromTime) throws SQLException;
+
     void deleteTimeseries(Connection conn, String hostname, Date fromTime) throws SQLException;
 
     void doMaintenance(Connection conn) throws SQLException;

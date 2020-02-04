@@ -28,6 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import static engine.db.sqlite.SqliteUtils.SELECT_GPU;
 
 public class SqliteStrategy implements DatabaseStrategy {
 
@@ -244,6 +245,39 @@ public class SqliteStrategy implements DatabaseStrategy {
                     sb.append(cal.get(Calendar.SECOND)).append("),");
                     sb.append(rs.getString(2)).append(",");
                     sb.append("-").append(rs.getString(3));
+                    sb.append("]]);");
+                    sb.append(System.lineSeparator());
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public String readGpuJsData(Connection conn, String hostname, Date fromTime) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        try (PreparedStatement stmt = conn.prepareStatement(SELECT_GPU)) {
+            stmt.setString(1, hostname);
+            stmt.setString(2, sdfSqlite.format(fromTime));
+            try (ResultSet rs = stmt.executeQuery()) {
+                Calendar cal = Calendar.getInstance();
+                cal.setLenient(false);
+                while (rs.next()) {
+                    try {
+                        cal.setTime(sdfSqlite.parse(rs.getString(1)));
+                    } catch (ParseException ex) {
+                        // this should never happen, but just in case we skip the line
+                        // no need to throw a RuntimeException and stop execution
+                        continue;
+                    }
+                    sb.append("data.addRows([[new Date(");
+                    sb.append(cal.get(Calendar.YEAR)).append(",");
+                    sb.append(cal.get(Calendar.MONTH)).append(",");
+                    sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
+                    sb.append(cal.get(Calendar.HOUR_OF_DAY)).append(",");
+                    sb.append(cal.get(Calendar.MINUTE)).append(",");
+                    sb.append(cal.get(Calendar.SECOND)).append("),");
+                    sb.append(rs.getString(2));
                     sb.append("]]);");
                     sb.append(System.lineSeparator());
                 }

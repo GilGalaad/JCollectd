@@ -7,10 +7,15 @@ import engine.sample.DiskRawSample;
 import engine.sample.LoadRawSample;
 import engine.sample.MemRawSample;
 import engine.sample.NetRawSample;
+import engine.sample.GpuRawSample;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LinuxCollectStrategy implements CollectStrategy {
 
@@ -124,6 +129,30 @@ public class LinuxCollectStrategy implements CollectStrategy {
         }
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);
+        return ret;
+    }
+
+    @Override
+    public GpuRawSample collectGpu() throws ExecutionException {
+        GpuRawSample ret = new GpuRawSample();
+        List<BigDecimal> loads = new ArrayList<>();
+        try {
+            Process p = new ProcessBuilder("sh", "-c", "nvidia-smi --format=csv,noheader,nounits --query-gpu=utilization.gpu").redirectErrorStream(true).start();
+            p.waitFor();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    loads.add(new BigDecimal(line.trim()));
+                }
+            }
+        } catch (IOException | InterruptedException ex) {
+            throw new ExecutionException("Unexpected error while running nvidia-smi", ex);
+        }
+        BigDecimal sum = BigDecimal.ZERO;
+        for (BigDecimal load : loads) {
+            sum = sum.add(load);
+        }
+        ret.setLoad(sum.divide(BigDecimal.valueOf(loads.size()), 1, RoundingMode.HALF_UP));
         return ret;
     }
 
