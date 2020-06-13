@@ -51,9 +51,9 @@ FreeBSD instead, provides I/O values for each block device but not totals for ZF
 There is a simple sanity check on probe configuration (for example on mandatory parameters, and probe numbering), but I am sure you can shoot yourself in the leg if you try enough.
 
 ## Usage
-Simply execute the jar in background, with a line like this (assuming `/jdk8` is your `$JAVA_HOME`)
+Simply execute the jar in background, with a line like this (assuming `/jdk11` is your `$JAVA_HOME`)
 ```
-nohup /jdk8/bin/java -XX:MaxMetaspaceSize=16m -Xms32m -Xmx32m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
+nohup /jdk11/bin/java -Xms32m -Xmx32m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
 ```
 The output report will be produced at the location specified in configuration file, ready to be served by the httpd daemon of your choice. The result will be something like this:
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
@@ -63,7 +63,7 @@ In the `etc` folder you will find examples to run JCollectd as OS service, in `r
 
 ## Notes
 Worths to say that:
-* the memory footprint is relatively low, a few MB of heap size is enough to run the daemon with a reasonable configuration, but you may want to raise maximum heap size to something more (like 32m) to alleviate pressure on garbage collection.
+* the memory footprint is relatively low, a few MB of heap size is enough to run the daemon with a reasonable configuration, but you may want to raise maximum heap size to alleviate pressure on garbage collection (depending on your dataset size).
 * even with a very low heap, some memory will be consumed by internal mechanisms of sqlite memory allocation, this will be native memory and cannot be tuned via Java parameters.
 * logging facility is provided by [log4j2](https://logging.apache.org/log4j/2.x/). The program by default logs only on the console (at `INFO` level) a brief recap of what has been parsed from configuration file during startup, and during shutdown; and any unrecoverable error (at `FATAL` level) that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why. 
 * If you feel brave enough, you can raise the log level in `log4j2.xml` configuration file, and let the framework rotate the logs foy rou, with a [RollingFileAppender](https://logging.apache.org/log4j/2.x/manual/appenders.html#RollingFileAppender)
