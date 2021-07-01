@@ -56,6 +56,7 @@ Simply execute the jar in background, with a line like this (assuming `/jdk11` i
 nohup /jdk11/bin/java -Xms32m -Xmx32m -jar JCollectd.jar jcollectd.properties > jcollectd.log &
 ```
 The output report will be produced at the location specified in configuration file, ready to be served by the httpd daemon of your choice. The result will be something like this:
+
 ![report](https://raw.githubusercontent.com/GilGalaad/JCollectd/master/artifacts/JCollectd.png)
 
 ## Run as service
