@@ -1,6 +1,6 @@
 package engine.db.sqlite;
 
-public final class SqliteUtils {
+public class SqliteUtils {
 
     private SqliteUtils() {
     }

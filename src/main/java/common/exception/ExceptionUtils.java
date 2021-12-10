@@ -2,6 +2,7 @@ package common.exception;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -46,6 +47,10 @@ public final class ExceptionUtils {
         PrintWriter pw = new PrintWriter(sw);
         throwable.printStackTrace(pw);
         return sw.toString();
+    }
+
+    public static List<String> getStackTraceLines(Throwable throwable) {
+        return Arrays.asList(getStackTrace(throwable).split("\\r?\\n"));
     }
 
 }

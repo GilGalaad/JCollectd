@@ -3,32 +3,15 @@ package engine.db.sqlite;
 import engine.config.CollectConfiguration;
 import engine.db.DatabaseStrategy;
 import engine.db.model.TbProbeSeries;
-import static engine.db.sqlite.SqliteUtils.ANALYZE;
-import static engine.db.sqlite.SqliteUtils.BEGIN_TRANS;
-import static engine.db.sqlite.SqliteUtils.CREATE_IDX_STMT;
-import static engine.db.sqlite.SqliteUtils.CREATE_TB_STMT;
-import static engine.db.sqlite.SqliteUtils.DEL_STMT;
-import static engine.db.sqlite.SqliteUtils.END_TRANS;
-import static engine.db.sqlite.SqliteUtils.INS_STMT;
-import static engine.db.sqlite.SqliteUtils.PRAGMA;
-import static engine.db.sqlite.SqliteUtils.SELECT_CPU;
-import static engine.db.sqlite.SqliteUtils.SELECT_DISK;
-import static engine.db.sqlite.SqliteUtils.SELECT_LOAD;
-import static engine.db.sqlite.SqliteUtils.SELECT_MEM;
-import static engine.db.sqlite.SqliteUtils.SELECT_NET;
-import static engine.db.sqlite.SqliteUtils.VACUUM;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+
+import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import static engine.db.sqlite.SqliteUtils.SELECT_GPU;
+
+import static engine.db.sqlite.SqliteUtils.*;
 
 public class SqliteStrategy implements DatabaseStrategy {
 
@@ -65,8 +48,7 @@ public class SqliteStrategy implements DatabaseStrategy {
     public void persistTimeseries(Connection conn, ArrayList<TbProbeSeries> tmsList) throws SQLException {
         try (Statement stmt = conn.createStatement(); PreparedStatement pstmt = conn.prepareStatement(INS_STMT)) {
             stmt.executeUpdate(BEGIN_TRANS);
-            for (int i = 0; i < tmsList.size(); i++) {
-                TbProbeSeries s = tmsList.get(i);
+            for (TbProbeSeries s : tmsList) {
                 pstmt.setString(1, s.getHostname());
                 pstmt.setString(2, s.getProbeType());
                 pstmt.setString(3, s.getDevice());

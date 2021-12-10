@@ -1,51 +1,38 @@
 package engine;
 
-import static common.CommonUtils.HOUR_MS;
-import static common.CommonUtils.smartElapsed;
 import common.exception.ExecutionException;
-import static engine.ReportUtils.optsCpuJs;
-import static engine.ReportUtils.optsDiskJs;
-import static engine.ReportUtils.optsGpuJs;
-import static engine.ReportUtils.optsLoadJs;
-import static engine.ReportUtils.optsMemJs;
-import static engine.ReportUtils.optsNetJs;
-import static engine.ReportUtils.templateHtml;
 import engine.collect.CollectStrategy;
 import engine.collect.FreeBSDCollectStrategy;
 import engine.collect.LinuxCollectStrategy;
 import engine.config.CollectConfiguration;
-import static engine.config.CollectConfiguration.DbEngine.SQLITE;
-import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
-import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 import engine.config.ProbeConfiguration;
 import engine.config.ProbeConfiguration.ProbeType;
 import engine.db.DatabaseStrategy;
 import engine.db.model.TbProbeSeries;
 import engine.db.sqlite.SqliteStrategy;
-import engine.sample.CollectResult;
-import engine.sample.CpuRawSample;
-import engine.sample.DiskRawSample;
-import engine.sample.GpuRawSample;
-import engine.sample.LoadRawSample;
-import engine.sample.MemRawSample;
-import engine.sample.NetRawSample;
+import engine.sample.*;
+import lombok.extern.log4j.Log4j2;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Paths;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.nio.file.StandardOpenOption.WRITE;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import lombok.extern.log4j.Log4j2;
+
+import static common.CommonUtils.HOUR_MS;
+import static common.CommonUtils.smartElapsed;
+import static engine.ReportUtils.*;
+import static engine.config.CollectConfiguration.DbEngine.SQLITE;
+import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
+import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
+import static java.nio.file.StandardOpenOption.*;
 
 @Log4j2
 public class CollectEngine {
@@ -248,7 +235,7 @@ public class CollectEngine {
                 s1.setProbeType("mem");
                 s1.setDevice(null);
                 s1.setSampleTms(curResult.getCollectTms());
-                BigDecimal mem = new BigDecimal(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                BigDecimal mem = BigDecimal.valueOf(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
                 s1.setSampleValue(mem);
                 series.add(s1);
                 TbProbeSeries s2 = new TbProbeSeries();
@@ -256,7 +243,7 @@ public class CollectEngine {
                 s2.setProbeType("swap");
                 s2.setDevice(null);
                 s2.setSampleTms(curResult.getCollectTms());
-                BigDecimal swap = new BigDecimal(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                BigDecimal swap = BigDecimal.valueOf(cs.getSwapUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
                 s2.setSampleValue(swap);
                 series.add(s2);
                 TbProbeSeries s3 = new TbProbeSeries();
@@ -264,7 +251,7 @@ public class CollectEngine {
                 s3.setProbeType("cache");
                 s3.setDevice(null);
                 s3.setSampleTms(curResult.getCollectTms());
-                BigDecimal cache = new BigDecimal(cs.getCacheUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
+                BigDecimal cache = BigDecimal.valueOf(cs.getCacheUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
                 s3.setSampleValue(cache);
                 series.add(s3);
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
@@ -348,7 +335,7 @@ public class CollectEngine {
                         smartElapsed(System.nanoTime() - startReportTime, 0)));
 
         // writing to file
-        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), Charset.forName("UTF-8"), new OpenOption[]{WRITE, CREATE, TRUNCATE_EXISTING})) {
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(conf.getWebPath().toString()), StandardCharsets.UTF_8, WRITE, CREATE, TRUNCATE_EXISTING)) {
             bw.write(report);
         } catch (IOException ex) {
             throw new ExecutionException("I/O error while writing HTML report", ex);

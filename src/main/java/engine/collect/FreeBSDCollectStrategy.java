@@ -1,18 +1,15 @@
 package engine.collect;
 
-import static common.CommonUtils.isEmpty;
 import common.exception.ExecutionException;
-import engine.sample.CpuRawSample;
-import engine.sample.DiskRawSample;
-import engine.sample.GpuRawSample;
-import engine.sample.LoadRawSample;
-import engine.sample.MemRawSample;
-import engine.sample.NetRawSample;
+import engine.sample.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
+import static common.CommonUtils.isEmpty;
 
 public class FreeBSDCollectStrategy implements CollectStrategy {
 
@@ -67,7 +64,7 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
                 String line;
                 long pageSize = 0, active = 0, wired = 0, cache = 0, arc = 0;
                 // values from sysctl are in pages, usually 4096 bytes each, but we store in bytes
-                // sysctl sould always return a number or rows equal to the number of values requested, even in case of unknown oid
+                // sysctl should always return a number of rows equal to the number of values requested, even in case of unknown oid
                 if ((line = br.readLine()) != null && line.startsWith("vm.stats.vm.v_page_size")) {
                     pageSize = Long.parseLong(line.split("\\s+")[1]);
                 }

@@ -1,6 +1,6 @@
 package engine;
 
-public final class ReportUtils {
+public class ReportUtils {
 
     private ReportUtils() {
     }

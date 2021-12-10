@@ -1,12 +1,15 @@
 package engine.config;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-@Getter @Setter @ToString
+import java.nio.file.Path;
+import java.util.ArrayList;
+
+@Getter
+@Setter
+@ToString
 public class CollectConfiguration {
 
     public static enum OperatingSystem {

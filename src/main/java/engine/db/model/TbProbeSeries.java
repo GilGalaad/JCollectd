@@ -1,12 +1,15 @@
 package engine.db.model;
 
-import java.math.BigDecimal;
-import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-@Getter @Setter @ToString
+import java.math.BigDecimal;
+import java.util.Date;
+
+@Getter
+@Setter
+@ToString
 public class TbProbeSeries {
 
     private String hostname;

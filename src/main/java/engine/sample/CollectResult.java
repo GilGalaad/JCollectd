@@ -1,12 +1,15 @@
 package engine.sample;
 
-import java.util.ArrayList;
-import java.util.Date;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-@Getter @Setter @ToString
+import java.util.ArrayList;
+import java.util.Date;
+
+@Getter
+@Setter
+@ToString
 public class CollectResult {
 
     private final Date collectTms;

@@ -1,12 +1,10 @@
 package engine;
 
-import static common.CommonUtils.isEmpty;
 import common.exception.ConfigurationException;
 import engine.config.CollectConfiguration;
-import static engine.config.CollectConfiguration.DbEngine.SQLITE;
-import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
-import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 import engine.config.ProbeConfiguration;
+import lombok.extern.log4j.Log4j2;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.InetAddress;
@@ -14,10 +12,13 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
-import lombok.extern.log4j.Log4j2;
+
+import static common.CommonUtils.isEmpty;
+import static engine.config.CollectConfiguration.DbEngine.SQLITE;
+import static engine.config.CollectConfiguration.OperatingSystem.FREEBSD;
+import static engine.config.CollectConfiguration.OperatingSystem.LINUX;
 
 @Log4j2
 public class ConfigurationParser {
@@ -135,7 +136,7 @@ public class ConfigurationParser {
                     log.info("Parameter retentionHours -> {} (ceiling to reportHours)", conf.getReportHours());
                     conf.setRetentionHours(conf.getReportHours());
                 } else {
-                    log.info("Parameter retentionHours -> database cleanup disabled", conf.getReportHours());
+                    log.info("Parameter retentionHours -> database cleanup disabled");
                     conf.setRetentionHours(-1);
                 }
             } catch (NumberFormatException ex) {
@@ -166,7 +167,7 @@ public class ConfigurationParser {
                 plist.add(p);
             }
         }
-        Collections.sort(plist, (s1, s2) -> {
+        plist.sort((s1, s2) -> {
             Integer idx1 = Integer.parseInt(s1.substring(s1.indexOf(".") + 1, s1.lastIndexOf(".")));
             Integer idx2 = Integer.parseInt(s2.substring(s2.indexOf(".") + 1, s2.lastIndexOf(".")));
             return idx1.compareTo(idx2);

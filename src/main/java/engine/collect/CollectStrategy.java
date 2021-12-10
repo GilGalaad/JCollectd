@@ -1,12 +1,7 @@
 package engine.collect;
 
 import common.exception.ExecutionException;
-import engine.sample.CpuRawSample;
-import engine.sample.DiskRawSample;
-import engine.sample.LoadRawSample;
-import engine.sample.MemRawSample;
-import engine.sample.NetRawSample;
-import engine.sample.GpuRawSample;
+import engine.sample.*;
 
 public interface CollectStrategy {
 
