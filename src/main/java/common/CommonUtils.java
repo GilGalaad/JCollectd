@@ -24,19 +24,19 @@ public final class CommonUtils {
         return smartElapsed(elapsedNano, 2);
     }
 
-    public static String smartElapsed(long elapsedNano, int maxScale) {
+    public static String smartElapsed(long elapsedNano, int scale) {
         if (elapsedNano < TimeUnit.MICROSECONDS.toNanos(1)) {
-            return Long.toString(elapsedNano) + " nsec";
+            return elapsedNano + " nsec";
         } else if (elapsedNano < TimeUnit.MILLISECONDS.toNanos(1)) {
-            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MICROSECONDS.toNanos(1)), Math.min((elapsedNano < TimeUnit.MICROSECONDS.toNanos(10) ? 2 : 1), maxScale), RoundingMode.HALF_UP).toString() + " usec";
+            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MICROSECONDS.toNanos(1)), scale, RoundingMode.HALF_UP) + " usec";
         } else if (elapsedNano < TimeUnit.SECONDS.toNanos(1)) {
-            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MILLISECONDS.toNanos(1)), Math.min((elapsedNano < TimeUnit.MILLISECONDS.toNanos(10) ? 2 : 1), maxScale), RoundingMode.HALF_UP).toString() + " msec";
+            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MILLISECONDS.toNanos(1)), scale, RoundingMode.HALF_UP) + " msec";
         } else if (elapsedNano < TimeUnit.MINUTES.toNanos(1)) {
-            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.SECONDS.toNanos(1)), Math.min((elapsedNano < TimeUnit.SECONDS.toNanos(10) ? 2 : 1), maxScale), RoundingMode.HALF_UP).toString() + " sec";
+            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.SECONDS.toNanos(1)), scale, RoundingMode.HALF_UP) + " sec";
         } else if (elapsedNano < TimeUnit.HOURS.toNanos(1)) {
-            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MINUTES.toNanos(1)), Math.min((elapsedNano < TimeUnit.MINUTES.toNanos(10) ? 2 : 1), maxScale), RoundingMode.HALF_UP).toString() + " min";
+            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.MINUTES.toNanos(1)), scale, RoundingMode.HALF_UP) + " min";
         } else {
-            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.HOURS.toNanos(1)), Math.min((elapsedNano < TimeUnit.HOURS.toNanos(10) ? 2 : 1), maxScale), RoundingMode.HALF_UP).toString() + " hours";
+            return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.HOURS.toNanos(1)), scale, RoundingMode.HALF_UP) + " hours";
         }
     }
 
