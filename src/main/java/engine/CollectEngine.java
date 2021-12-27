@@ -265,7 +265,7 @@ public class CollectEngine {
                 s1.setDevice(cs.getInterfaceName());
                 s1.setSampleTms(curResult.getCollectTms());
                 BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-                s1.setSampleValue(tx);
+                s1.setSampleValue(tx.compareTo(BigDecimal.ZERO) >= 0 ? tx : BigDecimal.ZERO);
                 series.add(s1);
                 TbProbeSeries s2 = new TbProbeSeries();
                 s2.setHostname(conf.getHostname());
@@ -273,7 +273,7 @@ public class CollectEngine {
                 s2.setDevice(cs.getInterfaceName());
                 s2.setSampleTms(curResult.getCollectTms());
                 BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
-                s2.setSampleValue(rx);
+                s2.setSampleValue(rx.compareTo(BigDecimal.ZERO) >= 0 ? rx : BigDecimal.ZERO);
                 series.add(s2);
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
                 // net saved in mbyte/s, rounded to 1 significant digit
@@ -286,7 +286,7 @@ public class CollectEngine {
                 s1.setDevice(cs.getDeviceName());
                 s1.setSampleTms(curResult.getCollectTms());
                 BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-                s1.setSampleValue(read);
+                s1.setSampleValue(read.compareTo(BigDecimal.ZERO) >= 0 ? read : BigDecimal.ZERO);
                 series.add(s1);
                 TbProbeSeries s2 = new TbProbeSeries();
                 s2.setHostname(conf.getHostname());
@@ -294,7 +294,7 @@ public class CollectEngine {
                 s2.setDevice(cs.getDeviceName());
                 s2.setSampleTms(curResult.getCollectTms());
                 BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
-                s2.setSampleValue(write);
+                s2.setSampleValue(write.compareTo(BigDecimal.ZERO) >= 0 ? write : BigDecimal.ZERO);
                 series.add(s2);
             } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
                 GpuRawSample cs = (GpuRawSample) curResult.getProbeRawSampleList().get(i);
