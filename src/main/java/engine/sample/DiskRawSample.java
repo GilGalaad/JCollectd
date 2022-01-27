@@ -9,7 +9,7 @@ import lombok.ToString;
 @ToString
 public class DiskRawSample extends ProbeRawSample {
 
-    private String deviceName;
+    private String device;
     private long readBytes;
     private long writeBytes;
 

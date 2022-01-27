@@ -29,6 +29,6 @@ public class CollectConfiguration {
     private int reportHours;
     private int retentionHours;
     private int interval;
-    private ArrayList<ProbeConfiguration> probeConfigList;
+    private ArrayList<Probe> probeConfigList;
 
 }

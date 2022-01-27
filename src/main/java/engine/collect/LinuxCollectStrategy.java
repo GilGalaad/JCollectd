@@ -81,14 +81,14 @@ public class LinuxCollectStrategy implements CollectStrategy {
     }
 
     @Override
-    public NetRawSample collectNet(String interfaceName) throws ExecutionException {
+    public NetRawSample collectNet(String device) throws ExecutionException {
         NetRawSample ret = new NetRawSample();
-        ret.setInterfaceName(interfaceName);
+        ret.setDevice(device);
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/net/dev"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
-                if (!line.startsWith(interfaceName)) {
+                if (!line.startsWith(device)) {
                     continue;
                 }
                 String[] split = line.split("\\s+");
@@ -103,10 +103,10 @@ public class LinuxCollectStrategy implements CollectStrategy {
     }
 
     @Override
-    public DiskRawSample collectDisk(String deviceName) throws ExecutionException {
+    public DiskRawSample collectDisk(String device) throws ExecutionException {
         DiskRawSample ret = new DiskRawSample();
-        ret.setDeviceName(deviceName);
-        String[] devList = deviceName.split("\\+");
+        ret.setDevice(device);
+        String[] devList = device.split("\\+");
         long readBytes = 0, writeBytes = 0;
         try (BufferedReader br = new BufferedReader(new FileReader("/proc/diskstats"))) {
             String line;
@@ -127,6 +127,11 @@ public class LinuxCollectStrategy implements CollectStrategy {
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);
         return ret;
+    }
+
+    @Override
+    public DiskRawSample collectZFS(String device) throws ExecutionException {
+        throw new ExecutionException("ZFS probe type not supported on this platform");
     }
 
     @Override

@@ -2,6 +2,7 @@ package engine.collect;
 
 import common.exception.ExecutionException;
 import engine.sample.*;
+import lombok.extern.log4j.Log4j2;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.math.RoundingMode;
 
 import static common.CommonUtils.isEmpty;
 
+@Log4j2
 public class FreeBSDCollectStrategy implements CollectStrategy {
 
     @Override
@@ -106,11 +108,11 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
     }
 
     @Override
-    public NetRawSample collectNet(String interfaceName) throws ExecutionException {
+    public NetRawSample collectNet(String device) throws ExecutionException {
         NetRawSample ret = new NetRawSample();
-        ret.setInterfaceName(interfaceName);
+        ret.setDevice(device);
         try {
-            Process p = new ProcessBuilder("sh", "-c", "netstat -b -n -I " + interfaceName + " | grep Link").redirectErrorStream(true).start();
+            Process p = new ProcessBuilder("sh", "-c", "netstat -b -n -I " + device + " | grep Link").redirectErrorStream(true).start();
             p.waitFor();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
@@ -127,13 +129,13 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
     }
 
     @Override
-    public DiskRawSample collectDisk(String deviceName) throws ExecutionException {
+    public DiskRawSample collectDisk(String device) throws ExecutionException {
         DiskRawSample ret = new DiskRawSample();
-        ret.setDeviceName(deviceName);
-        String[] devList = deviceName.split("\\+");
+        ret.setDevice(device);
+        String[] devList = device.split("\\+");
         long readBytes = 0, writeBytes = 0;
         try {
-            Process p = new ProcessBuilder("sh", "-c", "iostat -Ixd " + deviceName.replaceAll("\\+", " ")).redirectErrorStream(true).start();
+            Process p = new ProcessBuilder("sh", "-c", "iostat -Ixd " + device.replaceAll("\\+", " ")).redirectErrorStream(true).start();
             p.waitFor();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
@@ -150,6 +152,34 @@ public class FreeBSDCollectStrategy implements CollectStrategy {
             }
         } catch (IOException | InterruptedException ex) {
             throw new ExecutionException("Unexpected error while running iostat", ex);
+        }
+        ret.setReadBytes(readBytes);
+        ret.setWriteBytes(writeBytes);
+        return ret;
+    }
+
+    @Override
+    public DiskRawSample collectZFS(String device) throws ExecutionException {
+        DiskRawSample ret = new DiskRawSample();
+        ret.setDevice(device);
+        long readBytes = 0, writeBytes = 0;
+        try {
+            Process p = new ProcessBuilder("sysctl", "kstat.zfs." + device + ".dataset").redirectErrorStream(true).start();
+            p.waitFor();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.contains("unknown oid")) {
+                        return ret;
+                    } else if (line.contains(".nread:")) {
+                        readBytes += Long.parseLong(line.split("\\s", 2)[1].trim());
+                    } else if (line.contains(".nwritten:")) {
+                        writeBytes += Long.parseLong(line.split("\\s", 2)[1].trim());
+                    }
+                }
+            }
+        } catch (IOException | InterruptedException ex) {
+            throw new ExecutionException("Unexpected error while running sysctl", ex);
         }
         ret.setReadBytes(readBytes);
         ret.setWriteBytes(writeBytes);

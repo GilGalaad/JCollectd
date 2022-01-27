@@ -1,8 +1,10 @@
 package engine;
 
 import common.exception.ConfigurationException;
+import engine.config.ChartSize;
 import engine.config.CollectConfiguration;
-import engine.config.ProbeConfiguration;
+import engine.config.Probe;
+import engine.config.ProbeType;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.File;
@@ -172,7 +174,7 @@ public class ConfigurationParser {
             Integer idx2 = Integer.parseInt(s2.substring(s2.indexOf(".") + 1, s2.lastIndexOf(".")));
             return idx1.compareTo(idx2);
         });
-        ArrayList<ProbeConfiguration> probeConfList = new ArrayList<>(plist.size());
+        ArrayList<Probe> probeConfList = new ArrayList<>(plist.size());
         conf.setProbeConfigList(probeConfList);
         log.info("Found {} probe definitions", plist.size());
         for (int i = 0; i < plist.size(); i++) {
@@ -183,43 +185,45 @@ public class ConfigurationParser {
             }
 
             propValue = prop.getProperty(plist.get(i));
+            Probe probe;
+            ChartSize chartSize = getChartSize(prop, idx);
             if (isEmpty(propValue)) {
                 throw new ConfigurationException(String.format("Probe #%s undefined type", idx));
             } else if (propValue.equalsIgnoreCase("load")) {
-                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.LOAD, getGraphSize(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.LOAD, getGraphSize(prop, idx)));
+                probe = new Probe(ProbeType.LOAD, chartSize);
             } else if (propValue.equalsIgnoreCase("cpu")) {
-                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.CPU, getGraphSize(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.CPU, getGraphSize(prop, idx)));
+                probe = new Probe(ProbeType.CPU, chartSize);
             } else if (propValue.equalsIgnoreCase("mem")) {
-                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.MEM, getGraphSize(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.MEM, getGraphSize(prop, idx)));
+                probe = new Probe(ProbeType.MEM, chartSize);
             } else if (propValue.equalsIgnoreCase("net")) {
-                log.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx),
-                        !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.NET, getGraphSize(prop, idx), getProbeDevice(prop, idx),
-                        !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx)));
+                String device = getProbeDevice(prop, idx);
+                String label = getProbeLabel(prop, idx);
+                probe = new Probe(ProbeType.NET, chartSize, device, label);
             } else if (propValue.equalsIgnoreCase("disk")) {
-                log.info("Probe #{} -> {}, {}, {}, {}", idx, ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
-                        !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.DISK, getGraphSize(prop, idx), getProbeDeviceList(prop, idx),
-                        !isEmpty(getProbeLabel(prop, idx)) ? getProbeLabel(prop, idx) : getProbeDevice(prop, idx)));
+                String device = getProbeDeviceList(prop, idx);
+                String label = getProbeLabel(prop, idx);
+                probe = new Probe(ProbeType.DISK, chartSize, device, label);
+            } else if (propValue.equalsIgnoreCase("zfs")) {
+                String device = getProbeDevice(prop, idx);
+                String label = getProbeLabel(prop, idx);
+                probe = new Probe(ProbeType.ZFS, chartSize, device, label);
             } else if (propValue.equalsIgnoreCase("gpu")) {
-                log.info("Probe #{} -> {}, {}", idx, ProbeConfiguration.ProbeType.GPU, getGraphSize(prop, idx));
-                probeConfList.add(new ProbeConfiguration(ProbeConfiguration.ProbeType.GPU, getGraphSize(prop, idx)));
+                probe = new Probe(ProbeType.GPU, chartSize);
             } else {
                 throw new ConfigurationException(String.format("Probe #%s unsupported type", idx));
             }
+            probeConfList.add(probe);
+            log.info("Probe #{} -> {}", idx, probe);
         }
         return conf;
     }
 
-    private static ProbeConfiguration.ChartSize getGraphSize(Properties prop, int idx) throws ConfigurationException {
+    private static ChartSize getChartSize(Properties prop, int idx) throws ConfigurationException {
         String gsize = prop.getProperty("probe." + idx + ".size");
         if (isEmpty(gsize) || gsize.trim().equalsIgnoreCase("full")) {
-            return ProbeConfiguration.ChartSize.FULL_SIZE;
+            return ChartSize.FULL_SIZE;
         } else if (gsize.trim().equalsIgnoreCase("half")) {
-            return ProbeConfiguration.ChartSize.HALF_SIZE;
+            return ChartSize.HALF_SIZE;
         } else {
             throw new ConfigurationException(String.format("Probe #%s unsupported size", idx));
         }

@@ -11,9 +11,11 @@ public interface CollectStrategy {
 
     MemRawSample collectMem() throws ExecutionException;
 
-    NetRawSample collectNet(String interfaceName) throws ExecutionException;
+    NetRawSample collectNet(String device) throws ExecutionException;
 
-    DiskRawSample collectDisk(String deviceName) throws ExecutionException;
+    DiskRawSample collectDisk(String device) throws ExecutionException;
+
+    DiskRawSample collectZFS(String device) throws ExecutionException;
 
     GpuRawSample collectGpu() throws ExecutionException;
 

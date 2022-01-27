@@ -15,9 +15,9 @@ public class CollectResult {
     private final Date collectTms;
     private final ArrayList<ProbeRawSample> probeRawSampleList;
 
-    public CollectResult(int sz) {
+    public CollectResult(int size) {
         collectTms = new Date();
-        probeRawSampleList = new ArrayList<>(sz);
+        probeRawSampleList = new ArrayList<>(size);
     }
 
 }

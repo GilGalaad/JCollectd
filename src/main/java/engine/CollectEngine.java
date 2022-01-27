@@ -4,9 +4,9 @@ import common.exception.ExecutionException;
 import engine.collect.CollectStrategy;
 import engine.collect.FreeBSDCollectStrategy;
 import engine.collect.LinuxCollectStrategy;
+import engine.config.ChartSize;
 import engine.config.CollectConfiguration;
-import engine.config.ProbeConfiguration;
-import engine.config.ProbeConfiguration.ProbeType;
+import engine.config.ProbeType;
 import engine.db.DatabaseStrategy;
 import engine.db.model.TbProbeSeries;
 import engine.db.sqlite.SqliteStrategy;
@@ -154,20 +154,22 @@ public class CollectEngine {
     // parsing data from Operating System
     private void doCollect() throws ExecutionException {
         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-            if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+            if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.LOAD) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectLoadAvg());
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.CPU) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectCpu());
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.MEM) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectMem());
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.NET) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectNet(conf.getProbeConfigList().get(i).getDevice()));
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.DISK) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectDisk(conf.getProbeConfigList().get(i).getDevice()));
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.ZFS) {
+                curResult.getProbeRawSampleList().add(i, collectStrategy.collectZFS(conf.getProbeConfigList().get(i).getDevice()));
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.GPU) {
                 curResult.getProbeRawSampleList().add(i, collectStrategy.collectGpu());
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getProbeType()));
             }
             if (log.isTraceEnabled()) {
                 log.trace(curResult.getProbeRawSampleList().get(i).toString());
@@ -190,7 +192,7 @@ public class CollectEngine {
     private ArrayList<TbProbeSeries> rawSamplesToTimeseries() {
         ArrayList<TbProbeSeries> series = new ArrayList<>();
         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-            if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+            if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.LOAD) {
                 LoadRawSample cs = (LoadRawSample) curResult.getProbeRawSampleList().get(i);
                 TbProbeSeries s1 = new TbProbeSeries();
                 s1.setHostname(conf.getHostname());
@@ -213,7 +215,7 @@ public class CollectEngine {
                 s3.setSampleTms(curResult.getCollectTms());
                 s3.setSampleValue(cs.getLoad15minute());
                 series.add(s3);
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.CPU) {
                 // cpu saved in percent, rounded to 1 significant digit
                 CpuRawSample cs = (CpuRawSample) curResult.getProbeRawSampleList().get(i);
                 CpuRawSample ps = (CpuRawSample) prevResult.getProbeRawSampleList().get(i);
@@ -227,7 +229,7 @@ public class CollectEngine {
                 BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
                 s.setSampleValue(cpu);
                 series.add(s);
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.MEM) {
                 // mem saved in mebibyte, rounded to nearest integer
                 MemRawSample cs = (MemRawSample) curResult.getProbeRawSampleList().get(i);
                 TbProbeSeries s1 = new TbProbeSeries();
@@ -254,7 +256,7 @@ public class CollectEngine {
                 BigDecimal cache = BigDecimal.valueOf(cs.getCacheUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
                 s3.setSampleValue(cache);
                 series.add(s3);
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.NET) {
                 // net saved in kibibyte/s, rounded to nearest integer
                 NetRawSample cs = (NetRawSample) curResult.getProbeRawSampleList().get(i);
                 NetRawSample ps = (NetRawSample) prevResult.getProbeRawSampleList().get(i);
@@ -262,7 +264,7 @@ public class CollectEngine {
                 TbProbeSeries s1 = new TbProbeSeries();
                 s1.setHostname(conf.getHostname());
                 s1.setProbeType("net_tx");
-                s1.setDevice(cs.getInterfaceName());
+                s1.setDevice(cs.getDevice());
                 s1.setSampleTms(curResult.getCollectTms());
                 BigDecimal tx = new BigDecimal((cs.getTxBytes() - ps.getTxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
                 s1.setSampleValue(tx.compareTo(BigDecimal.ZERO) >= 0 ? tx : BigDecimal.ZERO);
@@ -270,20 +272,20 @@ public class CollectEngine {
                 TbProbeSeries s2 = new TbProbeSeries();
                 s2.setHostname(conf.getHostname());
                 s2.setProbeType("net_rx");
-                s2.setDevice(cs.getInterfaceName());
+                s2.setDevice(cs.getDevice());
                 s2.setSampleTms(curResult.getCollectTms());
                 BigDecimal rx = new BigDecimal((cs.getRxBytes() - ps.getRxBytes()) / 1024.0 / elapsedMsec * 1000.0).setScale(0, RoundingMode.HALF_UP);
                 s2.setSampleValue(rx.compareTo(BigDecimal.ZERO) >= 0 ? rx : BigDecimal.ZERO);
                 series.add(s2);
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
-                // net saved in mbyte/s, rounded to 1 significant digit
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.DISK || conf.getProbeConfigList().get(i).getProbeType() == ProbeType.ZFS) {
+                // disk saved in mbyte/s, rounded to 1 significant digit
                 DiskRawSample cs = (DiskRawSample) curResult.getProbeRawSampleList().get(i);
                 DiskRawSample ps = (DiskRawSample) prevResult.getProbeRawSampleList().get(i);
                 long elapsedMsec = curResult.getCollectTms().getTime() - prevResult.getCollectTms().getTime();
                 TbProbeSeries s1 = new TbProbeSeries();
                 s1.setHostname(conf.getHostname());
                 s1.setProbeType("disk_read");
-                s1.setDevice(cs.getDeviceName());
+                s1.setDevice(cs.getDevice());
                 s1.setSampleTms(curResult.getCollectTms());
                 BigDecimal read = new BigDecimal((cs.getReadBytes() - ps.getReadBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
                 s1.setSampleValue(read.compareTo(BigDecimal.ZERO) >= 0 ? read : BigDecimal.ZERO);
@@ -291,12 +293,12 @@ public class CollectEngine {
                 TbProbeSeries s2 = new TbProbeSeries();
                 s2.setHostname(conf.getHostname());
                 s2.setProbeType("disk_write");
-                s2.setDevice(cs.getDeviceName());
+                s2.setDevice(cs.getDevice());
                 s2.setSampleTms(curResult.getCollectTms());
                 BigDecimal write = new BigDecimal((cs.getWriteBytes() - ps.getWriteBytes()) / 1024.0 / 1024.0 / elapsedMsec * 1000.0).setScale(1, RoundingMode.HALF_UP);
                 s2.setSampleValue(write.compareTo(BigDecimal.ZERO) >= 0 ? write : BigDecimal.ZERO);
                 series.add(s2);
-            } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+            } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.GPU) {
                 GpuRawSample cs = (GpuRawSample) curResult.getProbeRawSampleList().get(i);
                 TbProbeSeries s = new TbProbeSeries();
                 s.setHostname(conf.getHostname());
@@ -306,7 +308,7 @@ public class CollectEngine {
                 s.setSampleValue(cs.getLoad());
                 series.add(s);
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
+                throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getProbeType()));
             }
         }
         if (log.isTraceEnabled()) {
@@ -347,12 +349,12 @@ public class CollectEngine {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
             sb.append("<div id=\"div_chart").append(i + 1).append("\" class=\"chart-container ");
-            if (conf.getProbeConfigList().get(i).getChSize() == ProbeConfiguration.ChartSize.FULL_SIZE) {
+            if (conf.getProbeConfigList().get(i).getChartSize() == ChartSize.FULL_SIZE) {
                 sb.append("full-size");
-            } else if (conf.getProbeConfigList().get(i).getChSize() == ProbeConfiguration.ChartSize.HALF_SIZE) {
+            } else if (conf.getProbeConfigList().get(i).getChartSize() == ChartSize.HALF_SIZE) {
                 sb.append("half-size");
             } else {
-                throw new UnsupportedOperationException(String.format("Unsupported chart size: %s", conf.getProbeConfigList().get(i).getChSize()));
+                throw new UnsupportedOperationException(String.format("Unsupported chart size: %s", conf.getProbeConfigList().get(i).getChartSize()));
             }
             sb.append("\"></div>").append(System.lineSeparator());
         }
@@ -364,20 +366,20 @@ public class CollectEngine {
         StringBuilder sb = new StringBuilder();
         try (Connection conn = databaseStrategy.getConnection()) {
             for (int i = 0; i < conf.getProbeConfigList().size(); i++) {
-                if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.LOAD) {
+                if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.LOAD) {
                     sb.append(createLoadCallback(i, conn, fromTime));
-                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.CPU) {
+                } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.CPU) {
                     sb.append(createCpuCallback(i, conn, fromTime));
-                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.MEM) {
+                } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.MEM) {
                     sb.append(createMemCallback(i, conn, fromTime));
-                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.NET) {
+                } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.NET) {
                     sb.append(createNetCallback(i, conn, fromTime));
-                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.DISK) {
+                } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.DISK || conf.getProbeConfigList().get(i).getProbeType() == ProbeType.ZFS) {
                     sb.append(createDiskCallback(i, conn, fromTime));
-                } else if (conf.getProbeConfigList().get(i).getPrType() == ProbeType.GPU) {
+                } else if (conf.getProbeConfigList().get(i).getProbeType() == ProbeType.GPU) {
                     sb.append(createGpuCallback(i, conn, fromTime));
                 } else {
-                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getPrType()));
+                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbeConfigList().get(i).getProbeType()));
                 }
             }
         } catch (SQLException ex) {

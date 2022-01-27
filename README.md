@@ -29,12 +29,13 @@ Supported general options are:
 
 After setting general option, you can configure an arbitrary number of probes. Each probe must be defined by a `probe.N.type` property, where N is a progressive number, starting by 1.
 Each probe definition can have one of the following values:
-* `load`: enables the Average Load sampling
+* `load`: enables the average load sampling
 * `cpu`: enables the CPU percent utilization sampling
-* `mem`: enables the Memory, Swap and Cache sampling
-* `net`: enables the Network Traffic sampling
-* `disk`: enables the Hard Disk usage sampling
-* `gpu`: enables the GPU usage sampling (only Nvidia is supported, and `nvidia-smi` must be installed)
+* `mem`: enables the memory, swap and cache sampling
+* `net`: enables the network traffic sampling
+* `disk`: enables the hard disk usage sampling
+* `zfs`: enables the ZFS zpool usage sampling (currently on FreeBSD only)
+* `gpu`: enables the GPU usage sampling (currently on Linux only, with Nvidia cards, and `nvidia-smi` is assumed to be installed)
 
 Each probe can have an optional property `probe.N.size` which can assume the following values:
 * `full`: for a full width chart (which is the default)
@@ -42,11 +43,11 @@ Each probe can have an optional property `probe.N.size` which can assume the fol
 
 The produced report is fully HTML5 compliant, and features a flowing, responsive layout. You can play with with progressive numbers and sizes to produce your ideal layout. To be mobile-friendly, graphs will be all drawn at full width on smaller resolution devices.
 
-Probes `net` and `hdd` needs an additional mandatory property to be defined: `probe.N.device`, with the name of the network interface or the block device you want to be sampled, (e.g. `probe.4.device=eth0`). The optional parameter `probe.N.label` can be used to see a more meaningful name in the report.
+Probes `net`, `disk` and `zfs` needs an additional mandatory property to be defined: `probe.N.device`, with the name of the network interface, the block device or the ZFS zpool you want to be sampled, (e.g. `probe.4.device=eth0`). The optional parameter `probe.N.label` can be used to see a more meaningful name in the report.
 
-`disk` probe supports the aggregation of devices, with a plus separated list of devices to be aggregated.\
+`disk` probe supports the aggregation of devices, with a `+` separated list of devices to be aggregated.\
 Linux provides I/O totals for `mdadm` raid arrays, so you have the choice to probe the *logical* amount of disk activity (using the array itself as device, e.g. `probe.5.device=md0`), or the aggregation of single disks composing the array (e.g. `probe.5.device=sda+sdb+sdc` in case you have a 3-disk RAID5).\
-FreeBSD instead, provides I/O values for each block device but not totals for ZFS `zpools`. So we must use the latter syntax and do some math (e.g. `probe.5.device=da0+da1+da2` in case you have a 3-disk raidz1).
+FreeBSD, on the other hand, provides totally different mechanisms to retrieve the two types of readings, so you can opt for a specific `zfs` probe to get the first, or a standard aggregated `disk` probe for the latter (e.g. `probe.5.device=da0+da1+da2` in case you have a 3-disk raidz1).
 
 There is a simple sanity check on probe configuration (for example on mandatory parameters, and probe numbering), but I am sure you can shoot yourself in the leg if you try enough.
 
@@ -74,6 +75,6 @@ Worths to say that:
 * ~~Add support for FreeBSD platform~~ Done
 * ~~Make the sampling rate (currently 60 seconds) user configurable~~ Done
 * Add support for more RDBMS, like [PostgreSQL](https://www.postgresql.org/)
-* ~~Add GPU support~~ Done
+* ~~Add GPU support~~ Done (on Linux only)
 
 #### Contributions, critics, suggestions are always welcome. Cheers!

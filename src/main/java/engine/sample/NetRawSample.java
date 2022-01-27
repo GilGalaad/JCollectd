@@ -9,7 +9,7 @@ import lombok.ToString;
 @ToString
 public class NetRawSample extends ProbeRawSample {
 
-    private String interfaceName;
+    private String device;
     private long txBytes;
     private long rxBytes;
 
