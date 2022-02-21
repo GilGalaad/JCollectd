@@ -10,7 +10,7 @@
         </Console>
     </appenders>
     <loggers>
-        <root level="DEBUG">
+        <root level="INFO">
             <appender-ref ref="Console" level="ALL"/>
         </root>
     </loggers>
