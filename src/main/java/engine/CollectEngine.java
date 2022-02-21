@@ -135,7 +135,7 @@ public class CollectEngine {
                 }
             }
 
-            // janitor work, once a hour
+            // janitor work, once an hour
             if (Thread.currentThread().isInterrupted()) {
                 return;
             }
@@ -312,7 +312,7 @@ public class CollectEngine {
             }
         }
         if (log.isTraceEnabled()) {
-            series.forEach((s) -> log.trace(s));
+            series.forEach(log::trace);
         }
         return series;
     }
