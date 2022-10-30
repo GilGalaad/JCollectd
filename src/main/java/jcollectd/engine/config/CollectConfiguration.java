@@ -12,12 +12,12 @@ import java.util.ArrayList;
 @ToString
 public class CollectConfiguration {
 
-    public static enum OperatingSystem {
+    public enum OperatingSystem {
         FREEBSD,
         LINUX
     }
 
-    public static enum DbEngine {
+    public enum DbEngine {
         SQLITE
     }
 
