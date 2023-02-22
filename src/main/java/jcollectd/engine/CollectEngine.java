@@ -261,7 +261,7 @@ public class CollectEngine {
     // creating html report
     private String doReport() throws ExecutionException {
         // reading from template
-        String report = templateHtml.replace("XXX_TITLE_XXX", conf.getHostname());
+        String report = HTML_TEMPLATE.replace("XXX_TITLE_XXX", conf.getHostname());
         report = report.replace("XXX_HOSTNAME_XXX", conf.getHostname());
         report = report.replace("XXX_DATE_XXX", sdfHtml.format(curResult.getCollectTms()));
 
@@ -333,7 +333,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', '15 min');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readLoadJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsLoadJs).append(System.lineSeparator());
+        sb.append(OPTS_LOAD_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
@@ -352,7 +352,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'CPU');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readCpuJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsCpuJs).append(System.lineSeparator());
+        sb.append(OPTS_CPU_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
@@ -373,7 +373,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Cache');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readMemJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsMemJs).append(System.lineSeparator());
+        sb.append(OPTS_MEM_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
@@ -393,7 +393,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'RX');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readNetJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsNetJs).append(System.lineSeparator());
+        sb.append(OPTS_NET_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
@@ -413,7 +413,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Write');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readDiskJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsDiskJs).append(System.lineSeparator());
+        sb.append(OPTS_DISK_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
@@ -432,7 +432,7 @@ public class CollectEngine {
         sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'GPU');").append(System.lineSeparator()).append(System.lineSeparator());
         sb.append(databaseStrategy.readGpuJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
-        sb.append(optsGpuJs).append(System.lineSeparator());
+        sb.append(OPTS_GPU_JS).append(System.lineSeparator());
         // draw chart
         sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
         sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());

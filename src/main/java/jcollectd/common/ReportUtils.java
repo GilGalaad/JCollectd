@@ -9,7 +9,7 @@ public class ReportUtils {
     public static final String HTML_3X_INDENT = HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT;
     public static final String HTML_4X_INDENT = HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT;
 
-    public static final String templateHtml = """
+    public static final String HTML_TEMPLATE = """
             <!DOCTYPE html>
             <html lang="en">
                 <head>
@@ -112,9 +112,10 @@ public class ReportUtils {
                         </div>
                     </div>
                 </body>
-            </html>""";
+            </html>
+            """;
 
-    public static final String optsLoadJs = """
+    public static final String OPTS_LOAD_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
@@ -153,7 +154,7 @@ public class ReportUtils {
                             };
             """;
 
-    public static final String optsCpuJs = """
+    public static final String OPTS_CPU_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
@@ -193,7 +194,7 @@ public class ReportUtils {
                             };
             """;
 
-    public static final String optsMemJs = """
+    public static final String OPTS_MEM_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
@@ -233,7 +234,7 @@ public class ReportUtils {
                             };
             """;
 
-    public static final String optsNetJs = """
+    public static final String OPTS_NET_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
@@ -271,7 +272,7 @@ public class ReportUtils {
                             };
             """;
 
-    public static final String optsDiskJs = """
+    public static final String OPTS_DISK_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
@@ -309,7 +310,7 @@ public class ReportUtils {
                             };
             """;
 
-    public static final String optsGpuJs = """
+    public static final String OPTS_GPU_JS = """
                             var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
                             date_formatter.format(data, 0);
                             var options = {
