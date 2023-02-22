@@ -134,7 +134,7 @@ public class ConfigurationParser {
                 if (retentionHours >= conf.getReportHours()) {
                     log.info("Parameter retentionHours -> {}", retentionHours);
                     conf.setRetentionHours(retentionHours);
-                } else if (retentionHours >= 0 && retentionHours < conf.getReportHours()) {
+                } else if (retentionHours >= 0) {
                     log.info("Parameter retentionHours -> {} (ceiling to reportHours)", conf.getReportHours());
                     conf.setRetentionHours(conf.getReportHours());
                 } else {

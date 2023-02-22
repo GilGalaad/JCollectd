@@ -5,327 +5,348 @@ public class ReportUtils {
     private ReportUtils() {
     }
 
-    public static final String templateHtml = "<!DOCTYPE html>\n"
-                                              + "<html lang=\"en\">\n"
-                                              + "    <head>\n"
-                                              + "        <title>XXX_TITLE_XXX</title>\n"
-                                              + "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-                                              + "        <meta charset=\"UTF-8\">\n"
-                                              + "        <link rel=\"icon\" type=\"image/png\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAABkSURBVHjaYvz//z8DJYCpfv+rJIoM2Hzz81yKDMAmaDTj7n+yDYBpJtYQJnyS2AxBF2MiRQM2eSZi/G004+5/XAYxMVAIBs4AmDcodgELjHEuQ5mRbANISXnogJHi3EhpGAAGAD1lMjFNCeWlAAAAAElFTkSuQmCC\" />\n"
-                                              + "        <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto\" />\n"
-                                              + "        <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.css\" integrity=\"sha256-46qynGAkLSFpVbEBog43gvNhfrOj+BmwXdxFgVK/Kvc=\" crossorigin=\"anonymous\" />\n"
-                                              + "        <style>\n"
-                                              + "            * {\n"
-                                              + "                box-sizing: border-box;\n"
-                                              + "            }\n"
-                                              + "            body {\n"
-                                              + "                background-color: rgb(42, 64, 81);\n"
-                                              + "                font-family: 'Roboto';\n"
-                                              + "            }\n"
-                                              + "            .navbar {\n"
-                                              + "                position: fixed;\n"
-                                              + "                top: 0;\n"
-                                              + "                left: 0;\n"
-                                              + "                right: 0;\n"
-                                              + "                z-index: 1;\n"
-                                              + "                background-color: rgba(8, 34, 53, 0.9);\n"
-                                              + "                border-bottom: 3px solid rgb(106, 129, 148);\n"
-                                              + "                padding: 0.5%;\n"
-                                              + "                text-align: center;\n"
-                                              + "                color: rgb(49, 151, 220);\n"
-                                              + "                text-shadow: 0 0 10px rgb(0, 0, 255), 0 0 10px rgb(0, 0, 255), 0 0 15px rgba(255, 255, 255, 0.9);\n"
-                                              + "                box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);\n"
-                                              + "            }\n"
-                                              + "            .navbar span {\n"
-                                              + "                display: inline-block;\n"
-                                              + "                width: 49%;\n"
-                                              + "            }\n"
-                                              + "            .navbar .navleft {\n"
-                                              + "                text-align: left;\n"
-                                              + "                font-size: 26px;\n"
-                                              + "            }\n"
-                                              + "            .navbar .navright {\n"
-                                              + "                text-align: right;\n"
-                                              + "                font-size: 16px;\n"
-                                              + "            }\n"
-                                              + "            .footer {\n"
-                                              + "                width: 100%;\n"
-                                              + "                padding-left: 3%;\n"
-                                              + "                padding-top: 0.4%;\n"
-                                              + "                padding-bottom: 0.8%;\n"
-                                              + "                font-size: 16px;\n"
-                                              + "                color: rgb(190, 190, 190);\n"
-                                              + "                clear: both;\n"
-                                              + "            }\n"
-                                              + "            .main-container {\n"
-                                              + "                width: 98%;\n"
-                                              + "                margin-left: auto;\n"
-                                              + "                margin-right: auto;\n"
-                                              + "                position: relative;\n"
-                                              + "                top: 60px;\n"
-                                              + "                text-shadow: 0 0 10px rgb(255, 255, 255);\n"
-                                              + "            }\n"
-                                              + "            .chart-container {\n"
-                                              + "                margin: 0.5%;\n"
-                                              + "                float: left;\n"
-                                              + "                background-color: rgba(8, 34, 53, 0.6);\n"
-                                              + "                border: 3px solid rgb(106, 129, 148);\n"
-                                              + "                border-radius: 2px;\n"
-                                              + "                box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);\n"
-                                              + "            }\n"
-                                              + "            .full-size {\n"
-                                              + "                width: 99%;\n"
-                                              + "            }\n"
-                                              + "            .half-size {\n"
-                                              + "                width: 49%;\n"
-                                              + "            }\n"
-                                              + "            @media only screen and (max-width: 1366px) {\n"
-                                              + "                .half-size {\n"
-                                              + "                    width: 99%;\n"
-                                              + "                }\n"
-                                              + "            }\n"
-                                              + "        </style>\n"
-                                              + "        <script src=\"https://www.gstatic.com/charts/loader.js\"></script>\n"
-                                              + "        <script>\n"
-                                              + "            google.charts.load('45', {'packages': ['corechart']});\n"
-                                              + "\n"
-                                              + "XXX_JSDATA_XXX\n"
-                                              + "        </script>\n"
-                                              + "    </head>\n"
-                                              + "    <body>\n"
-                                              + "        <div class=\"navbar\">\n"
-                                              + "            <span class=\"navleft\"><i class=\"fas fa-chart-area\" style=\"margin-right: 0.25em\"></i> XXX_HOSTNAME_XXX</span>\n"
-                                              + "            <span class=\"navright\"><i class=\"fas fa-clock\" style=\"margin-right: 0.25em\"></i> XXX_DATE_XXX</span>\n"
-                                              + "        </div>\n"
-                                              + "        <div class=\"main-container\">\n"
-                                              + "XXX_BODY_XXX\n"
-                                              + "            <div class=\"footer\">\n"
-                                              + "                <p>XXX_TIMINGS_XXX</p>\n"
-                                              + "            </div>\n"
-                                              + "        </div>\n"
-                                              + "    </body>\n"
-                                              + "</html>";
+    public static final String HTML_BASE_INDENT = "    ";
+    public static final String HTML_3X_INDENT = HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT;
+    public static final String HTML_4X_INDENT = HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT + HTML_BASE_INDENT;
 
-    public static final String optsLoadJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                            + "date_formatter.format(data, 0);\n"
-                                            + "var options = {\n"
-                                            + "    title: 'Average Load',\n"
-                                            + "    colors: ['#3366cc', '#ff9900', '#dc3912'],\n"
-                                            + "    backgroundColor: {fill: 'transparent'},\n"
-                                            + "    height: 350,\n"
-                                            + "    fontName: 'Roboto',\n"
-                                            + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                            + "    legend: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "        position: 'bottom'\n"
-                                            + "    },\n"
-                                            + "    hAxis: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "        format: 'HH:mm'\n"
-                                            + "    },\n"
-                                            + "    vAxis: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "        format: '#0.00',\n"
-                                            + "        minValue: 0\n"
-                                            + "    },\n"
-                                            + "    tooltip: {\n"
-                                            + "        textStyle: {color: '#162e40'}\n"
-                                            + "    },\n"
-                                            + "    animation: {\n"
-                                            + "        duration: 500,\n"
-                                            + "        easing: 'linear',\n"
-                                            + "        startup: true\n"
-                                            + "    },\n"
-                                            + "    chartArea: {\n"
-                                            + "        width: '100%',\n"
-                                            + "        left: 75,\n"
-                                            + "        right: 50\n"
-                                            + "    }\n"
-                                            + "};";
+    public static final String templateHtml = """
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <title>XXX_TITLE_XXX</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <meta charset="UTF-8">
+                    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAABkSURBVHjaYvz//z8DJYCpfv+rJIoM2Hzz81yKDMAmaDTj7n+yDYBpJtYQJnyS2AxBF2MiRQM2eSZi/G004+5/XAYxMVAIBs4AmDcodgELjHEuQ5mRbANISXnogJHi3EhpGAAGAD1lMjFNCeWlAAAAAElFTkSuQmCC" />
+                    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto" />
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.css" integrity="sha256-46qynGAkLSFpVbEBog43gvNhfrOj+BmwXdxFgVK/Kvc=" crossorigin="anonymous" />
+                    <style>
+                        * {
+                            box-sizing: border-box;
+                        }
+                        body {
+                            background-color: rgb(42, 64, 81);
+                            font-family: 'Roboto';
+                        }
+                        .navbar {
+                            position: fixed;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            z-index: 1;
+                            background-color: rgba(8, 34, 53, 0.9);
+                            border-bottom: 3px solid rgb(106, 129, 148);
+                            padding: 0.5%;
+                            text-align: center;
+                            color: rgb(49, 151, 220);
+                            text-shadow: 0 0 10px rgb(0, 0, 255), 0 0 10px rgb(0, 0, 255), 0 0 15px rgba(255, 255, 255, 0.9);
+                            box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);
+                        }
+                        .navbar span {
+                            display: inline-block;
+                            width: 49%;
+                        }
+                        .navbar .navleft {
+                            text-align: left;
+                            font-size: 26px;
+                        }
+                        .navbar .navright {
+                            text-align: right;
+                            font-size: 16px;
+                        }
+                        .footer {
+                            width: 100%;
+                            padding-left: 3%;
+                            padding-top: 0.4%;
+                            padding-bottom: 0.8%;
+                            font-size: 16px;
+                            color: rgb(190, 190, 190);
+                            clear: both;
+                        }
+                        .main-container {
+                            width: 98%;
+                            margin-left: auto;
+                            margin-right: auto;
+                            position: relative;
+                            top: 60px;
+                            text-shadow: 0 0 10px rgb(255, 255, 255);
+                        }
+                        .chart-container {
+                            margin: 0.5%;
+                            float: left;
+                            background-color: rgba(8, 34, 53, 0.6);
+                            border: 3px solid rgb(106, 129, 148);
+                            border-radius: 2px;
+                            box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);
+                        }
+                        .full-size {
+                            width: 99%;
+                        }
+                        .half-size {
+                            width: 49%;
+                        }
+                        @media only screen and (max-width: 1366px) {
+                            .half-size {
+                                width: 99%;
+                            }
+                        }
+                    </style>
+                    <script src="https://www.gstatic.com/charts/loader.js"></script>
+                    <script>
+                        google.charts.load('45', {'packages': ['corechart']});
+                        <!-- start of generated JS data -->
+                        XXX_JSDATA_XXX
+                        <!-- end of generated JS data -->
+                    </script>
+                </head>
+                <body>
+                    <div class="navbar">
+                        <span class="navleft"><i class="fas fa-chart-area" style="margin-right: 0.25em"></i> XXX_HOSTNAME_XXX</span>
+                        <span class="navright"><i class="fas fa-clock" style="margin-right: 0.25em"></i> XXX_DATE_XXX</span>
+                    </div>
+                    <div class="main-container">
+                        <!-- start of generated charts -->
+                        XXX_BODY_XXX
+                        <!-- end of generated charts -->
+                        <div class="footer">
+                            <p>XXX_TIMINGS_XXX</p>
+                        </div>
+                    </div>
+                </body>
+            </html>""";
 
-    public static final String optsCpuJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                           + "date_formatter.format(data, 0);\n"
-                                           + "var options = {\n"
-                                           + "    title: 'CPU utilization percent',\n"
-                                           + "    colors: ['#3366cc'],\n"
-                                           + "    backgroundColor: {fill: 'transparent'},\n"
-                                           + "    height: 350,\n"
-                                           + "    fontName: 'Roboto',\n"
-                                           + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                           + "    legend: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        position: 'bottom'\n"
-                                           + "    },\n"
-                                           + "    hAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: 'HH:mm'\n"
-                                           + "    },\n"
-                                           + "    vAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: '#\\'%\\'',\n"
-                                           + "        minValue: 0,\n"
-                                           + "        maxValue: 100\n"
-                                           + "    },\n"
-                                           + "    tooltip: {\n"
-                                           + "        textStyle: {color: '#162e40'}\n"
-                                           + "    },\n"
-                                           + "    animation: {\n"
-                                           + "        duration: 500,\n"
-                                           + "        easing: 'linear',\n"
-                                           + "        startup: true\n"
-                                           + "    },\n"
-                                           + "    chartArea: {\n"
-                                           + "        width: '100%',\n"
-                                           + "        left: 75,\n"
-                                           + "        right: 50\n"
-                                           + "    }\n"
-                                           + "};";
+    public static final String optsLoadJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'Average Load',
+                                colors: ['#3366cc', '#ff9900', '#dc3912'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: '#0.00',
+                                    minValue: 0
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
 
-    public static final String optsMemJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                           + "date_formatter.format(data, 0);\n"
-                                           + "var options = {\n"
-                                           + "    title: 'Memory usage (in MiB)',\n"
-                                           + "    colors: ['#3366cc', '#dc3912', '#ff9900'],\n"
-                                           + "    backgroundColor: {fill: 'transparent'},\n"
-                                           + "    height: 350,\n"
-                                           + "    isStacked: true,\n"
-                                           + "    fontName: 'Roboto',\n"
-                                           + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                           + "    legend: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        position: 'bottom'\n"
-                                           + "    },\n"
-                                           + "    hAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: 'HH:mm'\n"
-                                           + "    },\n"
-                                           + "    vAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "		format: 'decimal',\n"
-                                           + "        minValue: 0\n"
-                                           + "    },\n"
-                                           + "    tooltip: {\n"
-                                           + "        textStyle: {color: '#162e40'}\n"
-                                           + "    },\n"
-                                           + "    animation: {\n"
-                                           + "        duration: 500,\n"
-                                           + "        easing: 'linear',\n"
-                                           + "        startup: true\n"
-                                           + "    },\n"
-                                           + "    chartArea: {\n"
-                                           + "        width: '100%',\n"
-                                           + "        left: 75,\n"
-                                           + "        right: 50\n"
-                                           + "    }\n"
-                                           + "};";
+    public static final String optsCpuJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'CPU utilization percent',
+                                colors: ['#3366cc'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: '#\\'%\\'',
+                                    minValue: 0,
+                                    maxValue: 100
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
 
-    public static final String optsNetJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                           + "date_formatter.format(data, 0);\n"
-                                           + "var options = {\n"
-                                           + "    title: 'Network usage: REPLACEME (in KiB/s)',\n"
-                                           + "    colors: ['#109618', '#3366cc'],\n"
-                                           + "    backgroundColor: {fill: 'transparent'},\n"
-                                           + "    height: 350,\n"
-                                           + "    fontName: 'Roboto',\n"
-                                           + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                           + "    legend: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        position: 'bottom'\n"
-                                           + "    },\n"
-                                           + "    hAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: 'HH:mm'\n"
-                                           + "    },\n"
-                                           + "    vAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "		format: 'decimal'\n"
-                                           + "    },\n"
-                                           + "    tooltip: {\n"
-                                           + "        textStyle: {color: '#162e40'}\n"
-                                           + "    },\n"
-                                           + "    animation: {\n"
-                                           + "        duration: 500,\n"
-                                           + "        easing: 'linear',\n"
-                                           + "        startup: true\n"
-                                           + "    },\n"
-                                           + "    chartArea: {\n"
-                                           + "        width: '100%',\n"
-                                           + "        left: 75,\n"
-                                           + "        right: 50\n"
-                                           + "    }\n"
-                                           + "};";
+    public static final String optsMemJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'Memory usage (in MiB)',
+                                colors: ['#3366cc', '#dc3912', '#ff9900'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                isStacked: true,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'decimal',
+                                    minValue: 0
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
 
-    public static final String optsDiskJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                            + "date_formatter.format(data, 0);\n"
-                                            + "var options = {\n"
-                                            + "    title: 'Disk usage: REPLACEME (in MiB/s)',\n"
-                                            + "    colors: ['#109618', '#3366cc'],\n"
-                                            + "    backgroundColor: {fill: 'transparent'},\n"
-                                            + "    height: 350,\n"
-                                            + "    fontName: 'Roboto',\n"
-                                            + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                            + "    legend: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "        position: 'bottom'\n"
-                                            + "    },\n"
-                                            + "    hAxis: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "        format: 'HH:mm'\n"
-                                            + "    },\n"
-                                            + "    vAxis: {\n"
-                                            + "        textStyle: {color: '#eeeeee'},\n"
-                                            + "		format: 'decimal'\n"
-                                            + "    },\n"
-                                            + "    tooltip: {\n"
-                                            + "        textStyle: {color: '#162e40'}\n"
-                                            + "    },\n"
-                                            + "    animation: {\n"
-                                            + "        duration: 500,\n"
-                                            + "        easing: 'linear',\n"
-                                            + "        startup: true\n"
-                                            + "    },\n"
-                                            + "    chartArea: {\n"
-                                            + "        width: '100%',\n"
-                                            + "        left: 75,\n"
-                                            + "        right: 50\n"
-                                            + "    }\n"
-                                            + "};";
+    public static final String optsNetJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'Network usage: REPLACEME (in KiB/s)',
+                                colors: ['#109618', '#3366cc'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'decimal'
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
 
-    public static final String optsGpuJs = "var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});\n"
-                                           + "date_formatter.format(data, 0);\n"
-                                           + "var options = {\n"
-                                           + "    title: 'GPU utilization percent',\n"
-                                           + "    colors: ['#3366cc'],\n"
-                                           + "    backgroundColor: {fill: 'transparent'},\n"
-                                           + "    height: 350,\n"
-                                           + "    fontName: 'Roboto',\n"
-                                           + "    titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},\n"
-                                           + "    legend: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        position: 'bottom'\n"
-                                           + "    },\n"
-                                           + "    hAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: 'HH:mm'\n"
-                                           + "    },\n"
-                                           + "    vAxis: {\n"
-                                           + "        textStyle: {color: '#eeeeee'},\n"
-                                           + "        format: '#\\'%\\'',\n"
-                                           + "        minValue: 0,\n"
-                                           + "        maxValue: 100\n"
-                                           + "    },\n"
-                                           + "    tooltip: {\n"
-                                           + "        textStyle: {color: '#162e40'}\n"
-                                           + "    },\n"
-                                           + "    animation: {\n"
-                                           + "        duration: 500,\n"
-                                           + "        easing: 'linear',\n"
-                                           + "        startup: true\n"
-                                           + "    },\n"
-                                           + "    chartArea: {\n"
-                                           + "        width: '100%',\n"
-                                           + "        left: 75,\n"
-                                           + "        right: 50\n"
-                                           + "    }\n"
-                                           + "};";
+    public static final String optsDiskJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'Disk usage: REPLACEME (in MiB/s)',
+                                colors: ['#109618', '#3366cc'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'decimal'
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
+
+    public static final String optsGpuJs = """
+                            var date_formatter = new google.visualization.DateFormat({pattern: 'dd/MM/yyyy HH:mm:ss'});
+                            date_formatter.format(data, 0);
+                            var options = {
+                                title: 'GPU utilization percent',
+                                colors: ['#3366cc'],
+                                backgroundColor: {fill: 'transparent'},
+                                height: 350,
+                                fontName: 'Roboto',
+                                titleTextStyle: {color: '#eeeeee', fontSize: 16, bold: false},
+                                legend: {
+                                    textStyle: {color: '#eeeeee'},
+                                    position: 'bottom'
+                                },
+                                hAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: 'HH:mm'
+                                },
+                                vAxis: {
+                                    textStyle: {color: '#eeeeee'},
+                                    format: '#\\'%\\'',
+                                    minValue: 0,
+                                    maxValue: 100
+                                },
+                                tooltip: {
+                                    textStyle: {color: '#162e40'}
+                                },
+                                animation: {
+                                    duration: 500,
+                                    easing: 'linear',
+                                    startup: true
+                                },
+                                chartArea: {
+                                    width: '100%',
+                                    left: 75,
+                                    right: 50
+                                }
+                            };
+            """;
+
 }

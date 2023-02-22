@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
+import static jcollectd.common.ReportUtils.HTML_4X_INDENT;
 import static jcollectd.engine.db.sqlite.SqliteUtils.*;
 
 public class SqliteStrategy implements DatabaseStrategy {
@@ -78,7 +79,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
@@ -113,7 +114,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
@@ -146,7 +147,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
@@ -183,7 +184,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
@@ -218,7 +219,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");
@@ -252,7 +253,7 @@ public class SqliteStrategy implements DatabaseStrategy {
                         // no need to throw a RuntimeException and stop execution
                         continue;
                     }
-                    sb.append("data.addRows([[new Date(");
+                    sb.append(HTML_4X_INDENT).append("data.addRows([[new Date(");
                     sb.append(cal.get(Calendar.YEAR)).append(",");
                     sb.append(cal.get(Calendar.MONTH)).append(",");
                     sb.append(cal.get(Calendar.DAY_OF_MONTH)).append(",");

@@ -65,22 +65,14 @@ public class CollectEngine {
         lastMaintenance = new Date();
 
         switch (conf.getOs()) {
-            case FREEBSD:
-                collectStrategy = new FreeBSDCollectStrategy();
-                break;
-            case LINUX:
-                collectStrategy = new LinuxCollectStrategy();
-                break;
-            default:
-                throw new UnsupportedOperationException(String.format("Unsupported Operating System: %s", conf.getOs()));
+            case FREEBSD -> collectStrategy = new FreeBSDCollectStrategy();
+            case LINUX -> collectStrategy = new LinuxCollectStrategy();
+            default -> throw new UnsupportedOperationException(String.format("Unsupported Operating System: %s", conf.getOs()));
         }
 
         switch (conf.getDbEngine()) {
-            case SQLITE:
-                databaseStrategy = new SqliteStrategy(conf);
-                break;
-            default:
-                throw new UnsupportedOperationException(String.format("Unsupported Database engine: %s", conf.getDbEngine()));
+            case SQLITE -> databaseStrategy = new SqliteStrategy(conf);
+            default -> throw new UnsupportedOperationException(String.format("Unsupported Database engine: %s", conf.getDbEngine()));
         }
     }
 
@@ -173,29 +165,14 @@ public class CollectEngine {
     private void doCollect() throws ExecutionException {
         for (int i = 0; i < conf.getProbes().size(); i++) {
             switch (conf.getProbes().get(i).getProbeType()) {
-                case LOAD:
-                    curResult.getSamples().add(i, collectStrategy.collectLoadAvg());
-                    break;
-                case CPU:
-                    curResult.getSamples().add(i, collectStrategy.collectCpu());
-                    break;
-                case MEM:
-                    curResult.getSamples().add(i, collectStrategy.collectMem());
-                    break;
-                case NET:
-                    curResult.getSamples().add(i, collectStrategy.collectNet(conf.getProbes().get(i).getDevice()));
-                    break;
-                case DISK:
-                    curResult.getSamples().add(i, collectStrategy.collectDisk(conf.getProbes().get(i).getDevice()));
-                    break;
-                case ZFS:
-                    curResult.getSamples().add(i, collectStrategy.collectZFS(conf.getProbes().get(i).getDevice()));
-                    break;
-                case GPU:
-                    curResult.getSamples().add(i, collectStrategy.collectGpu());
-                    break;
-                default:
-                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
+                case LOAD -> curResult.getSamples().add(i, collectStrategy.collectLoadAvg());
+                case CPU -> curResult.getSamples().add(i, collectStrategy.collectCpu());
+                case MEM -> curResult.getSamples().add(i, collectStrategy.collectMem());
+                case NET -> curResult.getSamples().add(i, collectStrategy.collectNet(conf.getProbes().get(i).getDevice()));
+                case DISK -> curResult.getSamples().add(i, collectStrategy.collectDisk(conf.getProbes().get(i).getDevice()));
+                case ZFS -> curResult.getSamples().add(i, collectStrategy.collectZFS(conf.getProbes().get(i).getDevice()));
+                case GPU -> curResult.getSamples().add(i, collectStrategy.collectGpu());
+                default -> throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
             }
             if (log.isTraceEnabled()) {
                 log.trace(curResult.getSamples().get(i).toString());
@@ -219,14 +196,13 @@ public class CollectEngine {
         ArrayList<TbProbeSeries> series = new ArrayList<>();
         for (int i = 0; i < conf.getProbes().size(); i++) {
             switch (conf.getProbes().get(i).getProbeType()) {
-                case LOAD: {
+                case LOAD -> {
                     LoadRawSample cs = (LoadRawSample) curResult.getSamples().get(i);
                     series.add(new TbProbeSeries(conf.getHostname(), "load1m", curResult.getCollectTms(), cs.getLoad1minute()));
                     series.add(new TbProbeSeries(conf.getHostname(), "load5m", curResult.getCollectTms(), cs.getLoad5minute()));
                     series.add(new TbProbeSeries(conf.getHostname(), "load15m", curResult.getCollectTms(), cs.getLoad15minute()));
-                    break;
                 }
-                case CPU: {
+                case CPU -> {
                     // cpu saved in percent, rounded to 1 significant digit
                     CpuRawSample cs = (CpuRawSample) curResult.getSamples().get(i);
                     CpuRawSample ps = (CpuRawSample) prevResult.getSamples().get(i);
@@ -234,9 +210,8 @@ public class CollectEngine {
                     long diffIdle = cs.getIdleTime() - ps.getIdleTime();
                     BigDecimal cpu = new BigDecimal(100.0 * (diffTotal - diffIdle) / diffTotal).setScale(1, RoundingMode.HALF_UP);
                     series.add(new TbProbeSeries(conf.getHostname(), "cpu", curResult.getCollectTms(), cpu));
-                    break;
                 }
-                case MEM: {
+                case MEM -> {
                     // mem saved in mebibyte, rounded to nearest integer
                     MemRawSample cs = (MemRawSample) curResult.getSamples().get(i);
                     BigDecimal mem = BigDecimal.valueOf(cs.getMemUsed() / 1024.0 / 1024.0).setScale(0, RoundingMode.HALF_UP);
@@ -245,9 +220,8 @@ public class CollectEngine {
                     series.add(new TbProbeSeries(conf.getHostname(), "mem", curResult.getCollectTms(), mem));
                     series.add(new TbProbeSeries(conf.getHostname(), "swap", curResult.getCollectTms(), swap));
                     series.add(new TbProbeSeries(conf.getHostname(), "cache", curResult.getCollectTms(), cache));
-                    break;
                 }
-                case NET: {
+                case NET -> {
                     // net saved in kibibyte/s, rounded to nearest integer
                     NetRawSample cs = (NetRawSample) curResult.getSamples().get(i);
                     NetRawSample ps = (NetRawSample) prevResult.getSamples().get(i);
@@ -258,10 +232,8 @@ public class CollectEngine {
                     rx = rx.compareTo(BigDecimal.ZERO) >= 0 ? rx : BigDecimal.ZERO;
                     series.add(new TbProbeSeries(conf.getHostname(), "net_tx", cs.getDevice(), curResult.getCollectTms(), tx));
                     series.add(new TbProbeSeries(conf.getHostname(), "net_rx", cs.getDevice(), curResult.getCollectTms(), rx));
-                    break;
                 }
-                case DISK:
-                case ZFS: {
+                case DISK, ZFS -> {
                     // disk saved in mbyte/s, rounded to 1 significant digit
                     DiskRawSample cs = (DiskRawSample) curResult.getSamples().get(i);
                     DiskRawSample ps = (DiskRawSample) prevResult.getSamples().get(i);
@@ -272,15 +244,12 @@ public class CollectEngine {
                     write = write.compareTo(BigDecimal.ZERO) >= 0 ? write : BigDecimal.ZERO;
                     series.add(new TbProbeSeries(conf.getHostname(), "disk_read", cs.getDevice(), curResult.getCollectTms(), read));
                     series.add(new TbProbeSeries(conf.getHostname(), "disk_write", cs.getDevice(), curResult.getCollectTms(), write));
-                    break;
                 }
-                case GPU: {
+                case GPU -> {
                     GpuRawSample cs = (GpuRawSample) curResult.getSamples().get(i);
                     series.add(new TbProbeSeries(conf.getHostname(), "gpu", curResult.getCollectTms(), cs.getLoad()));
-                    break;
                 }
-                default:
-                    throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
+                default -> throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
             }
         }
         if (log.isTraceEnabled()) {
@@ -300,8 +269,8 @@ public class CollectEngine {
         Date fromTime = new Date(curResult.getCollectTms().getTime() - (conf.getReportHours() * HOUR_MS));
 
         // replacing placeholders
-        report = report.replace("XXX_JSDATA_XXX\n", createJavascript(fromTime));
-        report = report.replace("XXX_BODY_XXX\n", createHmtlBody());
+        report = report.replace("XXX_JSDATA_XXX", createJavascript(fromTime).trim());
+        report = report.replace("XXX_BODY_XXX", createHmtlBody().trim());
         return report;
     }
 
@@ -317,7 +286,7 @@ public class CollectEngine {
     private String createHmtlBody() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < conf.getProbes().size(); i++) {
-            sb.append("<div id=\"div_chart").append(i + 1).append("\" class=\"chart-container ");
+            sb.append(HTML_3X_INDENT).append("<div id=\"div_chart").append(i + 1).append("\" class=\"chart-container ");
             if (conf.getProbes().get(i).getChartSize() == ChartSize.FULL_SIZE) {
                 sb.append("full-size");
             } else if (conf.getProbes().get(i).getChartSize() == ChartSize.HALF_SIZE) {
@@ -336,27 +305,13 @@ public class CollectEngine {
         try (Connection conn = databaseStrategy.getConnection()) {
             for (int i = 0; i < conf.getProbes().size(); i++) {
                 switch (conf.getProbes().get(i).getProbeType()) {
-                    case LOAD:
-                        sb.append(createLoadCallback(i, conn, fromTime));
-                        break;
-                    case CPU:
-                        sb.append(createCpuCallback(i, conn, fromTime));
-                        break;
-                    case MEM:
-                        sb.append(createMemCallback(i, conn, fromTime));
-                        break;
-                    case NET:
-                        sb.append(createNetCallback(i, conn, fromTime));
-                        break;
-                    case DISK:
-                    case ZFS:
-                        sb.append(createDiskCallback(i, conn, fromTime));
-                        break;
-                    case GPU:
-                        sb.append(createGpuCallback(i, conn, fromTime));
-                        break;
-                    default:
-                        throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
+                    case LOAD -> sb.append(createLoadCallback(i, conn, fromTime));
+                    case CPU -> sb.append(createCpuCallback(i, conn, fromTime));
+                    case MEM -> sb.append(createMemCallback(i, conn, fromTime));
+                    case NET -> sb.append(createNetCallback(i, conn, fromTime));
+                    case DISK, ZFS -> sb.append(createDiskCallback(i, conn, fromTime));
+                    case GPU -> sb.append(createGpuCallback(i, conn, fromTime));
+                    default -> throw new UnsupportedOperationException(String.format("Unsupported probe type: %s", conf.getProbes().get(i).getProbeType()));
                 }
             }
         } catch (SQLException ex) {
@@ -368,120 +323,120 @@ public class CollectEngine {
     private String createLoadCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', '1 min');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', '5 min');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', '15 min');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readLoadJsData(conn, conf.getHostname(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', '1 min');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', '5 min');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', '15 min');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readLoadJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsLoadJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
     private String createCpuCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'CPU');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readCpuJsData(conn, conf.getHostname(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'CPU');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readCpuJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsCpuJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
     private String createMemCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'Physical memory');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'Swap');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'Cache');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readMemJsData(conn, conf.getHostname(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Physical memory');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Swap');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Cache');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readMemJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsMemJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 
     private String createNetCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'TX');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'RX');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readNetJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'TX');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'RX');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readNetJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsNetJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString().replace("REPLACEME", conf.getProbes().get(idx).getLabel());
     }
 
     private String createDiskCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'Read');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'Write');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readDiskJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Read');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'Write');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readDiskJsData(conn, conf.getHostname(), conf.getProbes().get(idx).getDevice(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsDiskJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString().replace("REPLACEME", conf.getProbes().get(idx).getLabel());
     }
 
     private String createGpuCallback(int idx, Connection conn, Date fromTime) throws SQLException {
         // callback definition
         StringBuilder sb = new StringBuilder();
-        sb.append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
-        sb.append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
-        sb.append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("google.charts.setOnLoadCallback(drawChart").append(idx + 1).append(");").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("function drawChart").append(idx + 1).append("() {").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var data = new google.visualization.DataTable();").append(System.lineSeparator());
         // datatable and values from timeseries
-        sb.append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
-        sb.append("data.addColumn('number', 'GPU');").append(System.lineSeparator());
-        sb.append(databaseStrategy.readGpuJsData(conn, conf.getHostname(), fromTime));
+        sb.append(HTML_4X_INDENT).append("data.addColumn('datetime', 'Time');").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("data.addColumn('number', 'GPU');").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(databaseStrategy.readGpuJsData(conn, conf.getHostname(), fromTime)).append(System.lineSeparator());
         // options
         sb.append(optsGpuJs).append(System.lineSeparator());
         // draw chart
-        sb.append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
-        sb.append("chart.draw(data, options);").append(System.lineSeparator());
-        sb.append("}").append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("var chart = new google.visualization.AreaChart(document.getElementById('div_chart").append(idx + 1).append("'));").append(System.lineSeparator());
+        sb.append(HTML_4X_INDENT).append("chart.draw(data, options);").append(System.lineSeparator());
+        sb.append(HTML_3X_INDENT).append("}").append(System.lineSeparator()).append(System.lineSeparator());
         return sb.toString();
     }
 

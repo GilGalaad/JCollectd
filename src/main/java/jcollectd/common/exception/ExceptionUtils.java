@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class ExceptionUtils {
 
-    private static final String ROOT_PACKAGE = "jcollectd";
+    private static final String ROOT_PACKAGE = ExceptionUtils.class.getCanonicalName().substring(0, ExceptionUtils.class.getCanonicalName().indexOf("."));
 
     private ExceptionUtils() {
     }
