@@ -51,7 +51,7 @@ public class CollectEngine {
     private long startReportTime;
     private long endReportTime;
     private long startWriteTime;
-    private long WriteFlushTime;
+    private long writeFlushTime;
     private long startCleanTime;
     private long endCleanTime;
     private Date lastMaintenance;
@@ -139,9 +139,9 @@ public class CollectEngine {
                 // writing to disk
                 startWriteTime = System.nanoTime();
                 doWriteReport(report);
-                WriteFlushTime = System.nanoTime();
+                writeFlushTime = System.nanoTime();
                 if (log.isDebugEnabled()) {
-                    log.debug("Writing to disk time: {}", smartElapsed(WriteFlushTime - startWriteTime));
+                    log.debug("Writing to disk time: {}", smartElapsed(writeFlushTime - startWriteTime));
                 }
             }
 
