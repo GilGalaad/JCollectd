@@ -2,6 +2,7 @@ package jcollectd.main;
 
 import jcollectd.common.ExceptionUtils;
 import jcollectd.common.dto.config.AppConfig;
+import jcollectd.common.exception.CollectException;
 import jcollectd.common.exception.ConfigurationException;
 import jcollectd.engine.CollectEngine;
 import jcollectd.engine.ConfigurationParser;
@@ -34,7 +35,10 @@ public class Launcher {
         try {
             CollectEngine engine = new CollectEngine(config);
             engine.run();
+        } catch (CollectException ex) {
+            System.exit(1);
         } catch (Exception ex) {
+            log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             System.exit(1);
         }
     }
