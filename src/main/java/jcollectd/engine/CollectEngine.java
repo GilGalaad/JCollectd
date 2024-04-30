@@ -37,8 +37,8 @@ public class CollectEngine {
     private CollectResult curResult;
 
     // timings
-    private Instant collectTms;
     private Long collectElapsed;
+    private Long persistElapsed;
 
     public CollectEngine(AppConfig config) {
         this.config = config;
@@ -71,17 +71,17 @@ public class CollectEngine {
                 Thread.sleep(interval - (Instant.now().toEpochMilli() % interval));
 
                 // calculating collect timestamp rounded to the nearest second
-                collectTms = getRoundedCurrentInstant();
+                Instant collectTms = getRoundedCurrentInstant();
                 log.debug("Collect timestamp set to: {}", DTF.format(collectTms.atZone(ZoneId.of("UTC"))));
 
                 // starting collectors
                 long startTime = System.nanoTime();
-                List<Future<RawSample>> futures = collect();
+                List<Future<RawSample>> futures = runCollectors();
+                List<RawSample> rawSamples = getRawSamples(futures);
                 collectElapsed = System.nanoTime() - startTime;
                 log.debug("Collecting time: {}", smartElapsed(collectElapsed));
 
-                // fetching results
-                List<RawSample> rawSamples = fetchRawSamples(futures);
+                // moving observation window
                 prevResult = curResult;
                 curResult = new CollectResult(collectTms, rawSamples);
                 if (prevResult == null) {
@@ -89,7 +89,12 @@ public class CollectEngine {
                 }
 
                 // mapping raw samples into computed samples, eventually comparing with previous result
-                List<ComputedSample> computedSamples = mapRawSamples();
+                List<ComputedSample> computedSamples = mapSamples();
+
+                // persisting samples
+                startTime = System.nanoTime();
+
+                persistElapsed = System.nanoTime() - startTime;
             } catch (InterruptedException ex) {
                 log.info("Received KILL signal, shutting down");
                 Thread.currentThread().interrupt();
@@ -98,13 +103,13 @@ public class CollectEngine {
         }
     }
 
-    private List<Future<RawSample>> collect() throws InterruptedException {
+    private List<Future<RawSample>> runCollectors() throws InterruptedException {
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             return executor.invokeAll(collectors);
         }
     }
 
-    private List<RawSample> fetchRawSamples(List<Future<RawSample>> futures) {
+    private List<RawSample> getRawSamples(List<Future<RawSample>> futures) {
         ArrayList<RawSample> ret = new ArrayList<>(config.getProbes().size());
         boolean failures = false;
         for (int i = 0; i < futures.size(); i++) {
@@ -124,7 +129,7 @@ public class CollectEngine {
         return ret;
     }
 
-    private List<ComputedSample> mapRawSamples() {
+    private List<ComputedSample> mapSamples() {
         List<ComputedSample> ret = new ArrayList<>(config.getProbes().size());
         for (int i = 0; i < config.getProbes().size(); i++) {
             try {
