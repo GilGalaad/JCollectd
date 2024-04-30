@@ -1,4 +1,4 @@
-package jcollectd.engine.collector.runnable;
+package jcollectd.engine.collector.callable;
 
 import jcollectd.common.dto.sample.NetRawSample;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,7 @@ import java.io.FileReader;
 
 @RequiredArgsConstructor
 @Log4j2
-public class LinuxNetCollector extends CollectorRunnable {
+public class LinuxNetCollector extends Collector {
 
     private final String device;
 
@@ -38,8 +38,6 @@ public class LinuxNetCollector extends CollectorRunnable {
             NetRawSample ret = new NetRawSample(device, rx, tx);
             log.debug("Collected sample: {}", ret);
             return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("Unexpected error while reading /proc virtual filesystem", ex);
         }
     }
 

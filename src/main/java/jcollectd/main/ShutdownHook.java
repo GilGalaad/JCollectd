@@ -11,10 +11,7 @@ public class ShutdownHook extends Thread {
 
     @Override
     public void run() {
-        if (engineThread.isAlive()) {
-            log.info("Received KILL signal, shutdown sequence initiated");
-            engineThread.interrupt();
-        }
+        engineThread.interrupt();
     }
 
 }

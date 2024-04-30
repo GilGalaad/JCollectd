@@ -1,4 +1,4 @@
-package jcollectd.engine.collector.runnable;
+package jcollectd.engine.collector.callable;
 
 import jcollectd.common.dto.sample.CpuRawSample;
 import lombok.extern.log4j.Log4j2;
@@ -8,7 +8,7 @@ import java.io.FileReader;
 import java.util.Arrays;
 
 @Log4j2
-public class LinuxCpuCollector extends CollectorRunnable {
+public class LinuxCpuCollector extends Collector {
 
     @Override
     public CpuRawSample call() throws Exception {
@@ -25,8 +25,6 @@ public class LinuxCpuCollector extends CollectorRunnable {
             CpuRawSample ret = new CpuRawSample(totalTime, idleTime);
             log.debug("Collected sample: {}", ret);
             return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("Unexpected error while reading /proc virtual filesystem", ex);
         }
     }
 

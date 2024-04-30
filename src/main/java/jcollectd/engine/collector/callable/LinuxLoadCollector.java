@@ -1,4 +1,4 @@
-package jcollectd.engine.collector.runnable;
+package jcollectd.engine.collector.callable;
 
 import jcollectd.common.dto.sample.LoadRawSample;
 import lombok.extern.log4j.Log4j2;
@@ -8,7 +8,7 @@ import java.io.FileReader;
 import java.math.BigDecimal;
 
 @Log4j2
-public class LinuxLoadCollector extends CollectorRunnable {
+public class LinuxLoadCollector extends Collector {
 
     @Override
     public LoadRawSample call() throws Exception {
@@ -24,8 +24,6 @@ public class LinuxLoadCollector extends CollectorRunnable {
             LoadRawSample ret = new LoadRawSample(load1, load5, load15);
             log.debug("Collected sample: {}", ret);
             return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("Unexpected error while reading /proc virtual filesystem", ex);
         }
     }
 

@@ -1,4 +1,4 @@
-package jcollectd.engine.collector.runnable;
+package jcollectd.engine.collector.callable;
 
 import jcollectd.common.dto.sample.DiskRawSample;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Log4j2
-public class LinuxDiskCollector extends CollectorRunnable {
+public class LinuxDiskCollector extends Collector {
 
     private final String device;
 
@@ -41,8 +41,6 @@ public class LinuxDiskCollector extends CollectorRunnable {
             DiskRawSample ret = new DiskRawSample(device, read, write);
             log.debug("Collected sample: {}", ret);
             return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("Unexpected error while reading /proc virtual filesystem", ex);
         }
     }
 

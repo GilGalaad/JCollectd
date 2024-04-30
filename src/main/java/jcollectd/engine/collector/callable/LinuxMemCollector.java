@@ -1,4 +1,4 @@
-package jcollectd.engine.collector.runnable;
+package jcollectd.engine.collector.callable;
 
 import jcollectd.common.dto.sample.MemRawSample;
 import lombok.extern.log4j.Log4j2;
@@ -7,7 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 @Log4j2
-public class LinuxMemCollector extends CollectorRunnable {
+public class LinuxMemCollector extends Collector {
 
     @Override
     public MemRawSample call() throws Exception {
@@ -49,8 +49,6 @@ public class LinuxMemCollector extends CollectorRunnable {
             MemRawSample ret = new MemRawSample(mem, cache, swap);
             log.debug("Collected sample: {}", ret);
             return ret;
-        } catch (Exception ex) {
-            throw new RuntimeException("Unexpected error while reading /proc virtual filesystem", ex);
         }
     }
 

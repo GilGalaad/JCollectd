@@ -1,21 +1,21 @@
 package jcollectd.engine.collector.builder;
 
-import jcollectd.engine.collector.runnable.CollectorRunnable;
+import jcollectd.engine.collector.callable.Collector;
 
 public interface CollectorBuilder {
 
-    CollectorRunnable buildLoadCollector();
+    Collector buildLoadCollector();
 
-    CollectorRunnable buildCpuCollector();
+    Collector buildCpuCollector();
 
-    CollectorRunnable buildMemCollector();
+    Collector buildMemCollector();
 
-    CollectorRunnable buildNetCollector(String device);
+    Collector buildNetCollector(String device);
 
-    CollectorRunnable buildDiskCollector(String device);
+    Collector buildDiskCollector(String device);
 
-    CollectorRunnable buildZfsCollector(String device);
+    Collector buildZfsCollector(String device);
 
-    CollectorRunnable buildGpuCollector();
+    Collector buildGpuCollector();
 
 }

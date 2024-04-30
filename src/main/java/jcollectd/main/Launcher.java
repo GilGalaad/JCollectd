@@ -22,7 +22,7 @@ public class Launcher {
         try {
             config = ConfigurationParser.parse(args);
         } catch (ConfigurationException ex) {
-            log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
+            log.error(ExceptionUtils.getCanonicalForm(ex));
             System.exit(1);
         }
 
@@ -35,7 +35,6 @@ public class Launcher {
             CollectEngine engine = new CollectEngine(config);
             engine.run();
         } catch (Exception ex) {
-            log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             System.exit(1);
         }
     }

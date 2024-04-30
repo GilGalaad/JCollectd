@@ -1,41 +1,41 @@
 package jcollectd.engine.collector.builder;
 
-import jcollectd.engine.collector.runnable.*;
+import jcollectd.engine.collector.callable.*;
 
 public class FreeBSDCollectorBuilder implements CollectorBuilder {
 
     @Override
-    public CollectorRunnable buildLoadCollector() {
+    public Collector buildLoadCollector() {
         return new FreeBSDLoadCollector();
     }
 
     @Override
-    public CollectorRunnable buildCpuCollector() {
+    public Collector buildCpuCollector() {
         return new FreeBSDCpuCollector();
     }
 
     @Override
-    public CollectorRunnable buildMemCollector() {
+    public Collector buildMemCollector() {
         return new FreeBSDMemCollector();
     }
 
     @Override
-    public CollectorRunnable buildNetCollector(String device) {
+    public Collector buildNetCollector(String device) {
         return new FreeBSDNetCollector(device);
     }
 
     @Override
-    public CollectorRunnable buildDiskCollector(String device) {
+    public Collector buildDiskCollector(String device) {
         return new FreeBSDDiskCollector(device);
     }
 
     @Override
-    public CollectorRunnable buildZfsCollector(String device) {
+    public Collector buildZfsCollector(String device) {
         return new FreeBSDZfsCollector(device);
     }
 
     @Override
-    public CollectorRunnable buildGpuCollector() {
+    public Collector buildGpuCollector() {
         return new GpuCollector();
     }
 

@@ -1,41 +1,41 @@
 package jcollectd.engine.collector.builder;
 
-import jcollectd.engine.collector.runnable.*;
+import jcollectd.engine.collector.callable.*;
 
 public class LinuxCollectorBuilder implements CollectorBuilder {
 
     @Override
-    public CollectorRunnable buildLoadCollector() {
+    public Collector buildLoadCollector() {
         return new LinuxLoadCollector();
     }
 
     @Override
-    public CollectorRunnable buildCpuCollector() {
+    public Collector buildCpuCollector() {
         return new LinuxCpuCollector();
     }
 
     @Override
-    public CollectorRunnable buildMemCollector() {
+    public Collector buildMemCollector() {
         return new LinuxMemCollector();
     }
 
     @Override
-    public CollectorRunnable buildNetCollector(String device) {
+    public Collector buildNetCollector(String device) {
         return new LinuxNetCollector(device);
     }
 
     @Override
-    public CollectorRunnable buildDiskCollector(String device) {
+    public Collector buildDiskCollector(String device) {
         return new LinuxDiskCollector(device);
     }
 
     @Override
-    public CollectorRunnable buildZfsCollector(String device) {
+    public Collector buildZfsCollector(String device) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public CollectorRunnable buildGpuCollector() {
+    public Collector buildGpuCollector() {
         return new GpuCollector();
     }
 
