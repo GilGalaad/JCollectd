@@ -1,6 +1,6 @@
 package jcollectd.common.exception;
 
-public class ConfigurationException extends Exception {
+public class ConfigurationException extends RuntimeException {
 
     public ConfigurationException(String message) {
         super(message);

@@ -1,4 +1,4 @@
-package jcollectd.common.exception;
+package jcollectd.common;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -49,7 +49,7 @@ public class ExceptionUtils {
 
     public static Throwable getRootCause(Throwable throwable) {
         List<Throwable> list = getThrowableList(throwable);
-        return list.isEmpty() ? null : list.get(list.size() - 1);
+        return list.isEmpty() ? null : list.getLast();
     }
 
     public static String getStackTrace(Throwable throwable) {

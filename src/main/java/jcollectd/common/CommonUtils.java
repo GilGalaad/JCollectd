@@ -1,22 +1,25 @@
 package jcollectd.common;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.TimeUnit;
 
 public class CommonUtils {
 
-    public static final long HOUR_MS = 1000L * 60L * 60L;
+    public static final ObjectMapper YAML_OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()).findAndRegisterModules();
 
     private CommonUtils() {
     }
 
     public static boolean isEmpty(String str) {
-        return (str == null || str.trim().equals(""));
+        return str == null || str.isBlank();
     }
 
     public static String smartElapsed(long elapsedNano) {
-        return smartElapsed(elapsedNano, 2);
+        return smartElapsed(elapsedNano, 1);
     }
 
     public static String smartElapsed(long elapsedNano, int scale) {
