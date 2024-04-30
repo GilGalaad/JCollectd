@@ -119,7 +119,6 @@ public class ConfigurationParser {
         }
 
         return new AppConfig(os, hostname, interval, probes);
-
     }
 
 }

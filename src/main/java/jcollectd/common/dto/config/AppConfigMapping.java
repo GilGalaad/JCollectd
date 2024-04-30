@@ -9,10 +9,10 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppConfigMapping {
 
+    private String verbose;
     private String hostname;
     private String interval;
     private List<ProbeMapping> probes;
-    private String verbose;
 
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
