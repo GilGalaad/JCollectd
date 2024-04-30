@@ -7,12 +7,14 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class ShutdownHook extends Thread {
 
-    private final Thread workerThread;
+    private final Thread engineThread;
 
     @Override
     public void run() {
-        log.info("Received KILL signal, shutdown sequence initiated");
-        workerThread.interrupt();
+        if (engineThread.isAlive()) {
+            log.info("Received KILL signal, shutdown sequence initiated");
+            engineThread.interrupt();
+        }
     }
 
 }

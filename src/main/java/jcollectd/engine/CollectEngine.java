@@ -83,7 +83,6 @@ public class CollectEngine {
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 futures = executor.invokeAll(collectors);
             } catch (InterruptedException ex) {
-                log.error("Interrupted while running collectors");
                 Thread.currentThread().interrupt();
                 return;
             }
