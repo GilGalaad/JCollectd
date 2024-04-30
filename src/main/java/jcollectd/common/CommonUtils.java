@@ -3,8 +3,15 @@ package jcollectd.common;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class CommonUtils {
@@ -36,6 +43,24 @@ public class CommonUtils {
         } else {
             return BigDecimal.valueOf(elapsedNano).divide(BigDecimal.valueOf(TimeUnit.HOURS.toNanos(1)), scale, RoundingMode.HALF_UP) + " hours";
         }
+    }
+
+    public static Instant getRoundedCurrentInstant() {
+        Instant now = Instant.now();
+        return now.getNano() < 500_000_000 ? now.truncatedTo(ChronoUnit.SECONDS) : now.truncatedTo(ChronoUnit.SECONDS).plusSeconds(1);
+    }
+
+    public static List<String> processRunner(List<String> args) throws IOException, InterruptedException {
+        Process p = new ProcessBuilder(args).redirectErrorStream(true).start();
+        List<String> ret = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                ret.add(line);
+            }
+        }
+        p.waitFor();
+        return ret;
     }
 
 }

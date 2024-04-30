@@ -3,12 +3,12 @@ package jcollectd.main;
 import jcollectd.common.ExceptionUtils;
 import jcollectd.common.dto.config.AppConfig;
 import jcollectd.common.exception.ConfigurationException;
+import jcollectd.engine.CollectEngine;
 import jcollectd.engine.ConfigurationParser;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 
 @Log4j2
 public class Launcher {
@@ -22,27 +22,27 @@ public class Launcher {
         try {
             config = ConfigurationParser.parse(args);
         } catch (ConfigurationException ex) {
-            log.error(ExceptionUtils.getCanonicalForm(ex));
+            log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             System.exit(1);
         }
 
         // adding shutdown hook for clean shutdown when killed
-//        Thread sh = new ShutdownHook(Thread.currentThread());
-//        Runtime.getRuntime().addShutdownHook(sh);
+        Thread sh = new ShutdownHook(Thread.currentThread());
+        Runtime.getRuntime().addShutdownHook(sh);
 
         // starting engine
-//        try {
-//            CollectEngine eng = new CollectEngine(config);
-//            eng.run();
-//        } catch (Exception ex) {
-//            log.fatal(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
-//            System.exit(1);
-//        }
+        try {
+            CollectEngine engine = new CollectEngine(config);
+            engine.run();
+        } catch (Exception ex) {
+            log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
+            System.exit(1);
+        }
     }
 
     @SneakyThrows
     private static void printBanner() {
-        System.out.println(Files.readString(Paths.get(Launcher.class.getClassLoader().getResource("banner.txt").toURI())));
+        System.out.println(new String(Launcher.class.getResourceAsStream("/banner.txt").readAllBytes(), StandardCharsets.UTF_8));
     }
 
 }
