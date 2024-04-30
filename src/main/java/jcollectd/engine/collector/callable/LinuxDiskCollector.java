@@ -10,7 +10,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @Log4j2
-public class LinuxDiskCollector extends Collector {
+public class LinuxDiskCollector implements Collector {
 
     private final String device;
 

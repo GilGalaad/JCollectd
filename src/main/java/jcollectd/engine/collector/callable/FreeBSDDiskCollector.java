@@ -13,7 +13,7 @@ import static jcollectd.common.CommonUtils.processRunner;
 
 @RequiredArgsConstructor
 @Log4j2
-public class FreeBSDDiskCollector extends Collector {
+public class FreeBSDDiskCollector implements Collector {
 
     private final String device;
 

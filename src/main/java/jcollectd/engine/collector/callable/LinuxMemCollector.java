@@ -7,7 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 @Log4j2
-public class LinuxMemCollector extends Collector {
+public class LinuxMemCollector implements Collector {
 
     @Override
     public MemRawSample call() throws Exception {

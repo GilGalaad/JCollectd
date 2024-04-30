@@ -9,7 +9,7 @@ import java.util.List;
 import static jcollectd.common.CommonUtils.processRunner;
 
 @Log4j2
-public class FreeBSDLoadCollector extends Collector {
+public class FreeBSDLoadCollector implements Collector {
 
     @Override
     public LoadRawSample call() throws Exception {

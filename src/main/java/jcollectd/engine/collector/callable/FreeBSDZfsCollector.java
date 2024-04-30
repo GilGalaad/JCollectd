@@ -10,7 +10,7 @@ import static jcollectd.common.CommonUtils.processRunner;
 
 @AllArgsConstructor
 @Log4j2
-public class FreeBSDZfsCollector extends Collector {
+public class FreeBSDZfsCollector implements Collector {
 
     private final String device;
 

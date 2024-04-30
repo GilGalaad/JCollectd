@@ -10,7 +10,7 @@ import static jcollectd.common.CommonUtils.processRunner;
 
 @RequiredArgsConstructor
 @Log4j2
-public class FreeBSDNetCollector extends Collector {
+public class FreeBSDNetCollector implements Collector {
 
     private final String device;
 

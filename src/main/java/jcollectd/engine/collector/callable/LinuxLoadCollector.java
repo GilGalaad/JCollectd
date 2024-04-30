@@ -8,7 +8,7 @@ import java.io.FileReader;
 import java.math.BigDecimal;
 
 @Log4j2
-public class LinuxLoadCollector extends Collector {
+public class LinuxLoadCollector implements Collector {
 
     @Override
     public LoadRawSample call() throws Exception {

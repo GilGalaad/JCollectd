@@ -8,7 +8,7 @@ import java.util.List;
 import static jcollectd.common.CommonUtils.processRunner;
 
 @Log4j2
-public class FreeBSDMemCollector extends Collector {
+public class FreeBSDMemCollector implements Collector {
 
     @Override
     public MemRawSample call() throws Exception {

@@ -9,7 +9,7 @@ import java.util.List;
 import static jcollectd.common.CommonUtils.processRunner;
 
 @Log4j2
-public class FreeBSDCpuCollector extends Collector {
+public class FreeBSDCpuCollector implements Collector {
 
     @Override
     public CpuRawSample call() throws Exception {

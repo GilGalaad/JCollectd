@@ -12,7 +12,7 @@ import static jcollectd.common.CommonUtils.processRunner;
 
 @AllArgsConstructor
 @Log4j2
-public class GpuCollector extends Collector {
+public class GpuCollector implements Collector {
 
     @Override
     public GpuRawSample call() throws Exception {

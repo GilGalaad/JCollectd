@@ -8,7 +8,7 @@ import java.io.FileReader;
 import java.util.Arrays;
 
 @Log4j2
-public class LinuxCpuCollector extends Collector {
+public class LinuxCpuCollector implements Collector {
 
     @Override
     public CpuRawSample call() throws Exception {

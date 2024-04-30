@@ -9,7 +9,7 @@ import java.io.FileReader;
 
 @RequiredArgsConstructor
 @Log4j2
-public class LinuxNetCollector extends Collector {
+public class LinuxNetCollector implements Collector {
 
     private final String device;
 

@@ -4,5 +4,5 @@ import jcollectd.common.dto.sample.RawSample;
 
 import java.util.concurrent.Callable;
 
-public abstract class Collector implements Callable<RawSample> {
+public interface Collector extends Callable<RawSample> {
 }
