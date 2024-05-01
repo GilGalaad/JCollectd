@@ -190,7 +190,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getLoadSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_load_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load1, load5, load15 FROM tb_load_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             long startTime = System.nanoTime();
             try (var rs = pstmt.executeQuery()) {
@@ -203,14 +203,14 @@ public class SqliteService implements AutoCloseable {
                     });
                 }
             }
-            log.debug("Read {} rows from table tb_load_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+            log.debug("Read {} rows from tb_load_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
         }
         return ret;
     }
 
     public List<Object[]> getCpuSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_cpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_cpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             long startTime = System.nanoTime();
             try (var rs = pstmt.executeQuery()) {
@@ -221,14 +221,14 @@ public class SqliteService implements AutoCloseable {
                     });
                 }
             }
-            log.debug("Read {} rows from table tb_cpu_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+            log.debug("Read {} rows from tb_cpu_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
         }
         return ret;
     }
 
     public List<Object[]> getMemSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_mem_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, mem, cache, swap FROM tb_mem_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             long startTime = System.nanoTime();
             try (var rs = pstmt.executeQuery()) {
@@ -241,14 +241,14 @@ public class SqliteService implements AutoCloseable {
                     });
                 }
             }
-            log.debug("Read {} rows from table tb_mem_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+            log.debug("Read {} rows from tb_mem_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
         }
         return ret;
     }
 
     public List<Object[]> getNetSamples(Instant after, String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_net_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, rx, tx FROM tb_net_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             pstmt.setString(2, device);
             long startTime = System.nanoTime();
@@ -256,20 +256,19 @@ public class SqliteService implements AutoCloseable {
                 while (rs.next()) {
                     ret.add(new Object[]{
                             rs.getString(1),
-                            rs.getString(2),
-                            rs.getBigDecimal(3).negate(),
-                            rs.getBigDecimal(4)
+                            rs.getBigDecimal(2).negate(),
+                            rs.getBigDecimal(3)
                     });
                 }
             }
-            log.debug("Read {} rows from table tb_net_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+            log.debug("Read {} rows from tb_net_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
         }
         return ret;
     }
 
     public List<Object[]> getDiskSamples(Instant after, String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_disk_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, read, write FROM tb_disk_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             pstmt.setString(2, device);
             long startTime = System.nanoTime();
@@ -277,13 +276,30 @@ public class SqliteService implements AutoCloseable {
                 while (rs.next()) {
                     ret.add(new Object[]{
                             rs.getString(1),
-                            rs.getString(2),
-                            rs.getBigDecimal(3),
-                            rs.getBigDecimal(4).negate()
+                            rs.getBigDecimal(2),
+                            rs.getBigDecimal(3).negate()
                     });
                 }
             }
-            log.debug("Read {} rows from tb_disk_sample tb_net_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+            log.debug("Read {} rows from tb_disk_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
+    }
+
+    public List<Object[]> getGpuSamples(Instant after) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_gpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getBigDecimal(2)
+                    });
+                }
+            }
+            log.debug("Read {} rows from tb_gpu_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
         }
         return ret;
     }

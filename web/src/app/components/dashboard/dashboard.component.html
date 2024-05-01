@@ -20,8 +20,7 @@
   <div class="footer">
     <div class="timings">
       Time spent collecting samples: {{ runtime?.collectElapsed ? runtime?.collectElapsed : "-" }}, persisting samples:
-      {{ runtime?.persistElapsed ? runtime?.persistElapsed : "-" }}, loading data:
-      {{ startFetchTms && endFetchTms ? (endFetchTms - startFetchTms).toFixed(1) : "-" }} msec
+      {{ runtime?.persistElapsed ? runtime?.persistElapsed : "-" }}, generating report: {{ runtime?.reportElapsed ? runtime?.reportElapsed : "-" }}
     </div>
   </div>
 

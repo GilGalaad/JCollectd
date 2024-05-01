@@ -4,6 +4,8 @@ export interface Runtime {
   collectTms?: Date | null;
   collectElapsed?: string | null;
   persistElapsed?: string | null;
+  reportElapsed?: string | null;
+  datasets: [][][];
 }
 
 export interface Probe {
