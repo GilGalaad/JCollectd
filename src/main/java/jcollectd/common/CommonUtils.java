@@ -1,6 +1,7 @@
 package jcollectd.common;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.io.BufferedReader;
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 public class CommonUtils {
 
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     public static final ObjectMapper YAML_OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()).findAndRegisterModules();
 
     private CommonUtils() {

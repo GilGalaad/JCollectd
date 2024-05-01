@@ -9,6 +9,7 @@ import jcollectd.engine.collector.builder.FreeBSDCollectorBuilder;
 import jcollectd.engine.collector.builder.LinuxCollectorBuilder;
 import jcollectd.engine.collector.callable.Collector;
 import jcollectd.engine.mapper.*;
+import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
 import java.sql.SQLException;
@@ -34,12 +35,15 @@ public class CollectEngine {
     private final List<Collector> collectors;
 
     // results
-    private CollectResult prevResult;
-    private CollectResult curResult;
+    @Getter
+    private volatile CollectResult curResult;
+    private volatile CollectResult prevResult;
 
     // timings
-    private Long collectElapsed;
-    private Long persistElapsed;
+    @Getter
+    private volatile Long collectElapsed;
+    @Getter
+    private volatile Long persistElapsed;
 
     public CollectEngine(AppConfig config) {
         this.config = config;

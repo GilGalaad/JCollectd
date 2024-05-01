@@ -3,9 +3,16 @@ package jcollectd.engine;
 import jcollectd.common.dto.sample.*;
 import lombok.extern.log4j.Log4j2;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+
+import static jcollectd.common.CommonUtils.smartElapsed;
 
 @Log4j2
 public class SqliteService implements AutoCloseable {
@@ -94,12 +101,12 @@ public class SqliteService implements AutoCloseable {
     }
 
     public void persistSamples(List<ComputedSample> samples) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.executeUpdate(BEGIN_TRANSACTION);
 
             List<LoadComputedSample> loads = samples.stream().filter(i -> i instanceof LoadComputedSample).map(i -> (LoadComputedSample) i).toList();
             if (!loads.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_load_sample (sample_tms, load1, load5, load15) VALUES (?,?,?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_load_sample (sample_tms, load1, load5, load15) VALUES (?,?,?,?)")) {
                     for (var load : loads) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(load.getSampleTms()));
                         pstmt.setBigDecimal(2, load.getLoad1());
@@ -113,7 +120,7 @@ public class SqliteService implements AutoCloseable {
 
             List<CpuComputedSample> cpus = samples.stream().filter(i -> i instanceof CpuComputedSample).map(i -> (CpuComputedSample) i).toList();
             if (!cpus.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_cpu_sample (sample_tms, load) VALUES (?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_cpu_sample (sample_tms, load) VALUES (?,?)")) {
                     for (var cpu : cpus) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(cpu.getSampleTms()));
                         pstmt.setBigDecimal(2, cpu.getLoad());
@@ -125,7 +132,7 @@ public class SqliteService implements AutoCloseable {
 
             List<MemComputedSample> mems = samples.stream().filter(i -> i instanceof MemComputedSample).map(i -> (MemComputedSample) i).toList();
             if (!mems.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_mem_sample (sample_tms, mem, cache, swap) VALUES (?,?,?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_mem_sample (sample_tms, mem, cache, swap) VALUES (?,?,?,?)")) {
                     for (var mem : mems) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(mem.getSampleTms()));
                         pstmt.setBigDecimal(2, mem.getMem());
@@ -139,7 +146,7 @@ public class SqliteService implements AutoCloseable {
 
             List<NetComputedSample> nets = samples.stream().filter(i -> i instanceof NetComputedSample).map(i -> (NetComputedSample) i).toList();
             if (!nets.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_net_sample (sample_tms, device, rx, tx) VALUES (?,?,?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_net_sample (sample_tms, device, rx, tx) VALUES (?,?,?,?)")) {
                     for (var net : nets) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(net.getSampleTms()));
                         pstmt.setString(2, net.getDevice());
@@ -153,7 +160,7 @@ public class SqliteService implements AutoCloseable {
 
             List<DiskComputedSample> disks = samples.stream().filter(i -> i instanceof DiskComputedSample).map(i -> (DiskComputedSample) i).toList();
             if (!disks.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_disk_sample (sample_tms, device, read, write) VALUES (?,?,?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_disk_sample (sample_tms, device, read, write) VALUES (?,?,?,?)")) {
                     for (var disk : disks) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(disk.getSampleTms()));
                         pstmt.setString(2, disk.getDevice());
@@ -167,7 +174,7 @@ public class SqliteService implements AutoCloseable {
 
             List<GpuComputedSample> gpus = samples.stream().filter(i -> i instanceof GpuComputedSample).map(i -> (GpuComputedSample) i).toList();
             if (!gpus.isEmpty()) {
-                try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO tb_gpu_sample (sample_tms, load) VALUES (?,?)")) {
+                try (var pstmt = conn.prepareStatement("INSERT INTO tb_gpu_sample (sample_tms, load) VALUES (?,?)")) {
                     for (var gpu : gpus) {
                         pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(gpu.getSampleTms()));
                         pstmt.setBigDecimal(2, gpu.getLoad());
@@ -179,6 +186,106 @@ public class SqliteService implements AutoCloseable {
 
             stmt.executeUpdate(COMMIT);
         }
+    }
+
+    public List<Object[]> getLoadSamples(Instant after) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_load_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getBigDecimal(2),
+                            rs.getBigDecimal(3),
+                            rs.getBigDecimal(4)
+                    });
+                }
+            }
+            log.debug("Read {} rows from table tb_load_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
+    }
+
+    public List<Object[]> getCpuSamples(Instant after) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_cpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getBigDecimal(2)
+                    });
+                }
+            }
+            log.debug("Read {} rows from table tb_cpu_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
+    }
+
+    public List<Object[]> getMemSamples(Instant after) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_mem_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getBigDecimal(2),
+                            rs.getBigDecimal(3),
+                            rs.getBigDecimal(4)
+                    });
+                }
+            }
+            log.debug("Read {} rows from table tb_mem_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
+    }
+
+    public List<Object[]> getNetSamples(Instant after, String device) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_net_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            pstmt.setString(2, device);
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getString(2),
+                            rs.getBigDecimal(3).negate(),
+                            rs.getBigDecimal(4)
+                    });
+                }
+            }
+            log.debug("Read {} rows from table tb_net_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
+    }
+
+    public List<Object[]> getDiskSamples(Instant after, String device) throws SQLException {
+        List<Object[]> ret = new ArrayList<>();
+        try (var pstmt = conn.prepareStatement("SELECT * FROM tb_disk_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+            pstmt.setString(2, device);
+            long startTime = System.nanoTime();
+            try (var rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    ret.add(new Object[]{
+                            rs.getString(1),
+                            rs.getString(2),
+                            rs.getBigDecimal(3),
+                            rs.getBigDecimal(4).negate()
+                    });
+                }
+            }
+            log.debug("Read {} rows from tb_disk_sample tb_net_sample in {}", ret.size(), smartElapsed(System.nanoTime() - startTime));
+        }
+        return ret;
     }
 
 }
