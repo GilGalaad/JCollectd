@@ -1,0 +1,7 @@
+### Node ###
+/node
+/node_modules
+
+### Angular
+/dist/
+/.angular/

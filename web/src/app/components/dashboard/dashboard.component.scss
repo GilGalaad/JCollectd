@@ -1,0 +1,103 @@
+$navbar-height: 60px;
+
+// common container styles
+$background-color: rgba(8, 34, 53, 0.6);
+$border: 3px solid rgb(106, 129, 148);
+$box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: $navbar-height;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: $background-color;
+  border-bottom: $border;
+  box-shadow: $box-shadow;
+}
+
+.navbar-left {
+  margin-left: 1%;
+  font-size: 26px;
+}
+
+.navbar-right {
+  margin-right: 1%;
+  font-size: 16px;
+}
+
+.neon {
+  color: rgb(49, 151, 220);
+  text-shadow:
+    0 0 10px rgb(0, 0, 255),
+    0 0 10px rgb(0, 0, 255),
+    0 0 15px rgba(255, 255, 255, 0.9);
+  box-shadow: 0px 15px 15px -15px rgba(0, 0, 0, 0.8);
+}
+
+.icon {
+  margin-right: 0.5rem;
+}
+
+.content {
+  margin-left: 2%;
+  margin-right: 2%;
+  margin-top: calc($navbar-height + 1.5rem);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.charts-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 1.25rem;
+  row-gap: 1.25rem;
+}
+
+.chart-container {
+  border: $border;
+  border-radius: 2px;
+  background-color: $background-color;
+  box-shadow: $box-shadow;
+  height: 350px;
+}
+
+.full-size {
+  width: 100%;
+}
+
+.half-size {
+  width: calc((100% - 1.25rem) / 2);
+}
+
+@media only screen and (max-width: 1200px) {
+  .half-size {
+    width: 100%;
+  }
+}
+
+.footer {
+  margin-left: 2rem;
+  font-size: 16px;
+  display: flex;
+}
+
+.timings {
+  color: silver;
+  text-shadow: 0 0 5px silver;
+}
+
+.error {
+  color: #a50e0e;
+  border-left: 6px solid #a50e0e;
+  background-color: #ffdddd;
+  border-radius: 2px;
+  padding: 1em 2em;
+}
