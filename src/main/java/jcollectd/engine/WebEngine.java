@@ -43,7 +43,7 @@ public class WebEngine implements HttpHandler {
         try {
             Response response = switch (exchange.getRequestURI().toString()) {
                 case "/api/runtime" -> handleApiRequest();
-                default -> handleApiRequest();
+                default -> serveStaticResource(exchange.getRequestURI().toString());
             };
             exchange.getResponseHeaders().put("Access-Control-Allow-Origin", List.of("*"));
             exchange.getResponseHeaders().put("Content-type", List.of(response.contentType));
@@ -64,6 +64,33 @@ public class WebEngine implements HttpHandler {
 
         long endTime = System.nanoTime();
         log.debug("{} {} served in {}", exchange.getRequestMethod(), exchange.getRequestURI(), smartElapsed(endTime - startTime));
+    }
+
+    private Response serveStaticResource(String path) throws IOException {
+        // if root is requested, serve index.html like a normal webserver
+        if (path.equals("/")) {
+            return handleIndexRequest();
+        }
+        // otherwise, emulate nginx try_files, serve target file if exists, otherwise index.html
+        try (var is = this.getClass().getResourceAsStream("/web" + path)) {
+            if (is == null) {
+                return handleIndexRequest();
+            }
+
+            String contentType = switch (path) {
+                case String s when s.toLowerCase().endsWith(".css") -> "text/css; charset=utf-8";
+                case String s when s.toLowerCase().endsWith(".js") -> "text/javascript; charset=utf-8";
+                case String s when s.toLowerCase().endsWith(".png") -> "image/png";
+                default -> "application/octet-stream";
+            };
+            return new Response(is.readAllBytes(), contentType);
+        }
+    }
+
+    private Response handleIndexRequest() throws IOException {
+        try (var is = this.getClass().getResourceAsStream("/web/index.html")) {
+            return new Response(is.readAllBytes(), "text/html; charset=utf-8");
+        }
     }
 
     private Response handleApiRequest() throws SQLException, JsonProcessingException {

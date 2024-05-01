@@ -53,7 +53,9 @@ public class Launcher {
 
     @SneakyThrows
     private static void printBanner() {
-        System.out.println(new String(Launcher.class.getResourceAsStream("/banner.txt").readAllBytes(), StandardCharsets.UTF_8));
+        try (var is = Launcher.class.getResourceAsStream("/banner.txt")) {
+            System.out.println(new String(is.readAllBytes(), StandardCharsets.UTF_8));
+        }
     }
 
 }

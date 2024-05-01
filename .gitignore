@@ -1,4 +1,5 @@
 /.idea/
 /target/
+/src/main/resources/web
 /config.yaml
 /samples.db
