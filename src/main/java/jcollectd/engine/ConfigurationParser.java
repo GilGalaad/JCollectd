@@ -49,8 +49,7 @@ public class ConfigurationParser {
         OperatingSystem os = switch (System.getProperty("os.name")) {
             case "FreeBSD" -> FREEBSD;
             case "Linux" -> LINUX;
-//            default -> throw new ConfigurationException(String.format("Unsupported operating system: %s", System.getProperty("os.name")));
-            default -> FREEBSD;
+            default -> throw new ConfigurationException(String.format("Unsupported operating system: %s", System.getProperty("os.name")));
         };
         log.info("Operating system: {}", os.getLabel());
 

@@ -36,8 +36,10 @@ public class Launcher {
             CollectEngine engine = new CollectEngine(config);
             engine.run();
         } catch (CollectException ex) {
+            // exception already handled and logged
             System.exit(1);
         } catch (Exception ex) {
+            // unhandled exception
             log.error(ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             System.exit(1);
         }

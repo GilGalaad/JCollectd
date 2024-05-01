@@ -11,6 +11,7 @@ import jcollectd.engine.collector.callable.Collector;
 import jcollectd.engine.mapper.*;
 import lombok.extern.log4j.Log4j2;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -77,7 +78,7 @@ public class CollectEngine {
                 // starting collectors
                 long startTime = System.nanoTime();
                 List<Future<RawSample>> futures = runCollectors();
-                List<RawSample> rawSamples = getRawSamples(futures);
+                List<RawSample> rawSamples = getResults(futures);
                 collectElapsed = System.nanoTime() - startTime;
                 log.debug("Collecting time: {}", smartElapsed(collectElapsed));
 
@@ -93,8 +94,9 @@ public class CollectEngine {
 
                 // persisting samples
                 startTime = System.nanoTime();
-
+                persistSamples(computedSamples);
                 persistElapsed = System.nanoTime() - startTime;
+                log.debug("Persisting time: {}", smartElapsed(persistElapsed));
             } catch (InterruptedException ex) {
                 log.info("Received KILL signal, shutting down");
                 Thread.currentThread().interrupt();
@@ -109,7 +111,7 @@ public class CollectEngine {
         }
     }
 
-    private List<RawSample> getRawSamples(List<Future<RawSample>> futures) {
+    private List<RawSample> getResults(List<Future<RawSample>> futures) {
         ArrayList<RawSample> ret = new ArrayList<>(config.getProbes().size());
         boolean failures = false;
         for (int i = 0; i < futures.size(); i++) {
@@ -117,7 +119,7 @@ public class CollectEngine {
             switch (future.state()) {
                 case SUCCESS -> ret.add(future.resultNow());
                 case FAILED -> {
-                    log.error("Collector #{} failed with following exception: {}", i, ExceptionUtils.getCanonicalForm(future.exceptionNow()));
+                    log.error("Collector #{} failed: {}", i, ExceptionUtils.getCanonicalForm(future.exceptionNow()));
                     failures = true;
                 }
             }
@@ -142,11 +144,22 @@ public class CollectEngine {
                     case GPU -> ret.add(new GpuSampleMapper().map(curResult.getCollectTms(), (GpuRawSample) curResult.getRawSamples().get(i), prevResult.getCollectTms(), (GpuRawSample) prevResult.getRawSamples().get(i)));
                 }
             } catch (Exception ex) {
-                log.error("Mapping data from collector #{} failed with following exception: {}", i, ExceptionUtils.getCanonicalForm(ex));
+                log.error("Mapping data from collector #{} failed: {}", i, ExceptionUtils.getCanonicalForm(ex));
+                throw new CollectException();
             }
         }
         ret.forEach(log::debug);
         return ret;
+    }
+
+    private void persistSamples(List<ComputedSample> samples) {
+        try (var service = new SqliteService()) {
+            service.initializeDatabase();
+            service.persistSamples(samples);
+        } catch (SQLException ex) {
+            log.error("Persisting data failed: {}", ExceptionUtils.getCanonicalFormWithStackTrace(ex));
+            throw new CollectException();
+        }
     }
 
 }
