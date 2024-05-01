@@ -188,7 +188,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getLoadSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load1, load5, load15 FROM tb_load_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load1, load5, load15 FROM tb_load_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -206,7 +206,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getCpuSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_cpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_cpu_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -222,7 +222,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getMemSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, mem, cache, swap FROM tb_mem_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, mem, cache, swap FROM tb_mem_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -240,7 +240,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getNetSamples(Instant after, String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, rx, tx FROM tb_net_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, rx, tx FROM tb_net_sample WHERE sample_tms > ? AND device = ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             pstmt.setString(2, device);
             try (var rs = pstmt.executeQuery()) {
@@ -258,7 +258,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getDiskSamples(Instant after, String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, read, write FROM tb_disk_sample WHERE sample_tms >= ? AND device = ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, read, write FROM tb_disk_sample WHERE sample_tms > ? AND device = ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             pstmt.setString(2, device);
             try (var rs = pstmt.executeQuery()) {
@@ -276,7 +276,7 @@ public class SqliteService implements AutoCloseable {
 
     public List<Object[]> getGpuSamples(Instant after) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_gpu_sample WHERE sample_tms >= ? ORDER BY sample_tms ASC")) {
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_gpu_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
             pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -288,6 +288,21 @@ public class SqliteService implements AutoCloseable {
             }
         }
         return ret;
+    }
+
+    public void janitor(Instant before) throws SQLException {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate(BEGIN_TRANSACTION);
+
+            for (String table : List.of("tb_load_sample", "tb_cpu_sample", "tb_mem_sample", "tb_net_sample", "tb_disk_sample", "tb_gpu_sample")) {
+                try (var pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE sample_tms <= ?")) {
+                    pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(before));
+                    pstmt.executeUpdate();
+                }
+            }
+
+            stmt.executeUpdate(COMMIT);
+        }
     }
 
 }
