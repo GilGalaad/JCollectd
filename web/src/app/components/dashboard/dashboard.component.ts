@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { AfterViewChecked, Component, OnDestroy, OnInit } from "@angular/core";
 import { Title } from "@angular/platform-browser";
 import * as echarts from "echarts";
-import { Subscription } from "rxjs";
+import { Subscription, interval } from "rxjs";
 import { Probe, Runtime } from "../../services/api.model";
 import { ApiService } from "../../services/api.service";
 import { ERROR_MESSAGE, getCpuGpuOptions, getDiskOptions, getLoadOptions, getMemOptions, getNetOptions } from "./dashboard.helper";
@@ -19,8 +19,8 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   probes: Probe[] = [];
   datasets: [][][] = [];
   charts: echarts.ECharts[] = [];
-  timer$: Subscription | null = null;
   errorMessage: string | null = null;
+  timer$: Subscription | null = null;
 
   constructor(
     private title: Title,
@@ -32,13 +32,9 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   }
 
   ngAfterViewChecked(): void {
+    // init charts only if: 1. not done before, 2. probes are loaded, 3. all divs have been created
     if (this.charts.length === 0 && this.probes.length > 0 && this.probes.length === document.getElementsByClassName("chart-container").length) {
-      // init charts with loading template
-      this.probes.forEach((probe, idx) => {
-        const chart = echarts.init(document.getElementById("chart" + idx));
-        chart.setOption(this.createChartOption(probe, idx), true);
-        this.charts.push(chart);
-      });
+      this.initCharts();
     }
   }
 
@@ -50,11 +46,28 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.probes = this.runtime.probes;
         this.datasets = this.runtime.datasets;
         this.errorMessage = null;
-        // this.timer$ = interval(60000).subscribe(() => this.refresh());
+        if (this.charts.length > 0) {
+          this.updateCharts();
+        }
       },
       error: (_) => {
         this.errorMessage = ERROR_MESSAGE;
       },
+    });
+  }
+
+  private initCharts() {
+    this.probes.forEach((probe, idx) => {
+      const chart = echarts.init(document.getElementById("chart" + idx));
+      chart.setOption(this.createChartOption(probe, idx), true);
+      this.charts.push(chart);
+    });
+    this.timer$ = interval(60000).subscribe(() => this.fetchData());
+  }
+
+  private updateCharts() {
+    this.probes.forEach((probe, idx) => {
+      this.charts[idx].setOption(this.createChartOption(probe, idx), false);
     });
   }
 
