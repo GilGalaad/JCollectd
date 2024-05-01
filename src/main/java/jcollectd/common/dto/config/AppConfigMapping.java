@@ -12,6 +12,7 @@ public class AppConfigMapping {
     private String verbose;
     private String hostname;
     private String interval;
+    private String retention;
     private List<ProbeMapping> probes;
 
     @Data

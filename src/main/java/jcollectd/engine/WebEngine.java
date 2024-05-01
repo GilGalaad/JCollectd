@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,13 +31,6 @@ public class WebEngine implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         long startTime = System.nanoTime();
         log.debug("{} {}", exchange.getRequestMethod(), exchange.getRequestURI());
-
-//        if (exchange.getRequestMethod().equals("OPTIONS")) {
-//            log.info("OPTIONS!!!");
-//            exchange.getResponseHeaders().put("Access-Control-Allow-Origin", List.of("*"));
-//            exchange.sendResponseHeaders(200, -1);
-//            return;
-//        }
 
         try {
             Response response = switch (exchange.getRequestURI().toString()) {
@@ -95,7 +87,7 @@ public class WebEngine implements HttpHandler {
 
     private Response handleApiRequest() throws SQLException, JsonProcessingException {
         long startTime = System.nanoTime();
-        Instant after = Instant.now().minus(Duration.ofHours(12));
+        Instant after = Instant.now().minus(config.getRetention());
         List<List<Object[]>> datasets = new ArrayList<>(config.getProbes().size());
         try (var service = new SqliteService()) {
             service.initializeDatabase();

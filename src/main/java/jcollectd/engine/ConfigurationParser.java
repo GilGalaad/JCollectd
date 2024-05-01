@@ -49,8 +49,7 @@ public class ConfigurationParser {
         OperatingSystem os = switch (System.getProperty("os.name")) {
             case "FreeBSD" -> FREEBSD;
             case "Linux" -> LINUX;
-            default -> FREEBSD;
-//            default -> throw new ConfigurationException(String.format("Unsupported operating system: %s", System.getProperty("os.name")));
+            default -> throw new ConfigurationException(String.format("Unsupported operating system: %s", System.getProperty("os.name")));
         };
         log.info("Operating system: {}", os.getLabel());
 
@@ -72,6 +71,15 @@ public class ConfigurationParser {
             }
         }).orElse(Duration.ofMinutes(1));
         log.info("Sampling interval: {}", interval);
+
+        Duration retention = Optional.ofNullable(configMapping.getRetention()).map(s -> {
+            try {
+                return Duration.parse(s);
+            } catch (DateTimeParseException ex) {
+                throw new ConfigurationException("Field retention is not a valid duration");
+            }
+        }).orElse(Duration.ofHours(12));
+        log.info("Data retention: {}", interval);
 
         if (configMapping.getProbes() == null || configMapping.getProbes().isEmpty()) {
             throw new ConfigurationException("No probe defined");
@@ -118,7 +126,7 @@ public class ConfigurationParser {
             log.info("Probe #{}: {}", i + 1, probe.prettyPrint());
         }
 
-        return new AppConfig(os, hostname, interval, probes);
+        return new AppConfig(os, hostname, interval, retention, probes);
     }
 
 }
