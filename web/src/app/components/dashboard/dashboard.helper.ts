@@ -4,45 +4,43 @@ import { Probe } from "../../services/api.model";
 export const ERROR_MESSAGE = "Error while fetching data, connection to backend failed";
 
 const TEXT_COLOR = "gainsboro";
+const FONT_FAMILY = "Verdana, Geneva, sans-serif";
+const INACTIVE_TEXT_COLOR = "dimgray";
 const LINE_COLOR = "silver";
 
-function getTitle(text: string): echarts.TitleComponentOption {
-  return {
+export function createChartOption(probe: Probe, source: [][]): echarts.EChartsOption {
+  const ret: echarts.EChartsOption = {};
+
+  ret.title = {
+    text: getChartTitle(probe),
+    textStyle: {
+      color: TEXT_COLOR,
+      fontFamily: FONT_FAMILY,
+    },
     left: "16",
     top: "16",
-    text: text,
-    textStyle: getTextStyle(),
   };
-}
 
-function getLegend(data: string[]): echarts.LegendComponentOption {
-  return {
+  ret.legend = {
     top: "16",
-    inactiveColor: "dimgray",
-    textStyle: getTextStyle(),
+    inactiveColor: INACTIVE_TEXT_COLOR,
+    textStyle: {
+      color: TEXT_COLOR,
+      fontFamily: FONT_FAMILY,
+    },
     icon: "roundRect",
-    data: data,
+    data: getChartDimensions(probe).slice(1),
   };
-}
 
-function getTextStyle() {
-  return {
-    color: TEXT_COLOR,
-  };
-}
-
-function getGrid(): echarts.GridComponentOption {
-  return {
-    top: "75",
-    bottom: "32",
+  ret.grid = {
     left: "32",
+    top: "75",
     right: "32",
+    bottom: "32",
     containLabel: true,
   };
-}
 
-function getXAxis(): echarts.XAXisComponentOption[] {
-  return [
+  ret.xAxis = [
     {
       type: "time",
       axisLine: {
@@ -52,10 +50,8 @@ function getXAxis(): echarts.XAXisComponentOption[] {
       },
     },
   ];
-}
 
-function getYAxis(): echarts.YAXisComponentOption[] {
-  return [
+  ret.yAxis = [
     {
       type: "value",
       axisLine: {
@@ -65,6 +61,7 @@ function getYAxis(): echarts.YAXisComponentOption[] {
       },
       axisLabel: {
         margin: 16,
+        formatter: probe.type === "CPU" || probe.type === "GPU" ? "{value}%" : undefined,
       },
       splitLine: {
         lineStyle: {
@@ -73,16 +70,8 @@ function getYAxis(): echarts.YAXisComponentOption[] {
       },
     },
   ];
-}
 
-function getYAxisPercent(): echarts.YAXisComponentOption[] {
-  const ret = getYAxis() as any;
-  ret[0].axisLabel.formatter = "{value}%";
-  return ret;
-}
-
-function getTooltip(): echarts.TooltipComponentOption {
-  return {
+  ret.tooltip = {
     trigger: "axis",
     axisPointer: {
       label: {
@@ -101,208 +90,214 @@ function getTooltip(): echarts.TooltipComponentOption {
         },
       },
     },
+    textStyle: {
+      fontFamily: FONT_FAMILY,
+    },
   };
+
+  ret.dataset = {
+    source: source,
+    dimensions: getChartDimensions(probe),
+  };
+
+  ret.series = getChartSeries(probe);
+
+  ret.color = getChartColor(probe);
+
+  return ret;
 }
 
-export function getLoadOptions(_: Probe, source: [][]): echarts.EChartsOption {
-  return {
-    color: ["#3366cc", "#ff9900", "#dc3912"],
-    title: getTitle("Average load"),
-    legend: getLegend(["1 minute", "5 minutes", "15 minutes"]),
-    grid: getGrid(),
-    xAxis: getXAxis(),
-    yAxis: getYAxis(),
-    tooltip: getTooltip(),
-    dataset: {
-      source: source,
-      dimensions: ["timestamp", "1 minute", "5 minutes", "15 minutes"],
-    },
-    series: [
-      {
-        name: "1 minute",
-        type: "line",
-        encode: {
-          x: "timestamp",
-          y: "1 minute",
-        },
-        showSymbol: false,
-        z: 2,
-      },
-      {
-        name: "5 minutes",
-        type: "line",
-        encode: {
-          x: "timestamp",
-          y: "5 minutes",
-        },
-        showSymbol: false,
-        z: 1,
-      },
-      {
-        name: "15 minutes",
-        type: "line",
-        encode: {
-          x: "timestamp",
-          y: "15 minutes",
-        },
-        showSymbol: false,
-        z: 0,
-      },
-    ],
-  };
+function getChartTitle(probe: Probe) {
+  switch (probe.type) {
+    case "LOAD":
+      return "Average load";
+    case "CPU":
+      return "CPU usage";
+    case "MEM":
+      return "Memory usage (MiB)";
+    case "NET":
+      return "Network usage: " + probe.label + " (Mbps)";
+    case "DISK":
+      return "Disk usage: " + probe.label + " (MiB/s)";
+    case "ZFS":
+      return "ZFS dataset usage: " + probe.label + " (MiB/s)";
+    case "GPU":
+      return "GPU usage";
+  }
 }
 
-export function getCpuGpuOptions(probe: Probe, source: [][]): echarts.EChartsOption {
-  return {
-    color: ["#3366cc"],
-    title: getTitle(probe.type + " usage"),
-    legend: getLegend([probe.type]),
-    grid: getGrid(),
-    xAxis: getXAxis(),
-    yAxis: getYAxisPercent(),
-    tooltip: getTooltip(),
-    dataset: {
-      source: source,
-      dimensions: ["timestamp", probe.type],
-    },
-    series: [
-      {
-        name: probe.type,
-        type: "line",
-        encode: {
-          x: "timestamp",
-          y: probe.type,
-        },
-        showSymbol: false,
-        areaStyle: {},
-      },
-    ],
-  };
+function getChartDimensions(probe: Probe) {
+  switch (probe.type) {
+    case "LOAD":
+      return ["timestamp", "1 minute", "5 minutes", "15 minutes"];
+    case "CPU":
+      return ["timestamp", "CPU"];
+    case "MEM":
+      return ["timestamp", "Used memory", "Cache", "Swap"];
+    case "NET":
+      return ["timestamp", "TX", "RX"];
+    case "DISK":
+    case "ZFS":
+      return ["timestamp", "Read", "Write"];
+    case "GPU":
+      return ["timestamp", "GPU"];
+  }
 }
 
-export function getMemOptions(_: Probe, source: [][]): echarts.EChartsOption {
-  return {
-    color: ["#3366cc", "#ff9900", "#dc3912"],
-    title: getTitle("Memory usage (MiB)"),
-    legend: getLegend(["Used memory", "Cache", "Swap"]),
-    grid: getGrid(),
-    xAxis: getXAxis(),
-    yAxis: getYAxis(),
-    tooltip: getTooltip(),
-    dataset: {
-      source: source,
-      dimensions: ["timestamp", "Used memory", "Cache", "Swap"],
-    },
-    series: [
-      {
-        name: "Used memory",
-        type: "line",
-        stack: "Total",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "Used memory",
-        },
-        showSymbol: false,
-      },
-      {
-        name: "Cache",
-        type: "line",
-        stack: "Total",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "Cache",
-        },
-        showSymbol: false,
-      },
-      {
-        name: "Swap",
-        type: "line",
-        stack: "Total",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "Swap",
-        },
-        showSymbol: false,
-      },
-    ],
-  };
+function getChartColor(probe: Probe) {
+  switch (probe.type) {
+    case "LOAD":
+    case "MEM":
+      return ["#3366cc", "#ff9900", "#dc3912"];
+    case "CPU":
+    case "GPU":
+      return ["#3366cc"];
+    case "NET":
+    case "DISK":
+    case "ZFS":
+      return ["#109618", "#3366cc"];
+  }
 }
 
-export function getNetOptions(probe: Probe, source: [][]): echarts.EChartsOption {
-  return {
-    color: ["#109618", "#3366cc"],
-    title: getTitle("Network usage: " + probe.label + " (Mbps)"),
-    legend: getLegend(["TX", "RX"]),
-    grid: getGrid(),
-    xAxis: getXAxis(),
-    yAxis: getYAxis(),
-    tooltip: getTooltip(),
-    dataset: {
-      source: source,
-      dimensions: ["timestamp", "RX", "TX"],
-    },
-    series: [
-      {
-        name: "TX",
-        type: "line",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "TX",
+function getChartSeries(probe: Probe): echarts.SeriesOption[] {
+  switch (probe.type) {
+    case "LOAD":
+      return [
+        {
+          type: "line",
+          name: getChartDimensions(probe)[1],
+          showSymbol: false,
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[1],
+          },
+          z: 2,
         },
-        showSymbol: false,
-      },
-      {
-        name: "RX",
-        type: "line",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "RX",
+        {
+          type: "line",
+          name: getChartDimensions(probe)[2],
+          showSymbol: false,
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[2],
+          },
+          z: 1,
         },
-        showSymbol: false,
-      },
-    ],
-  };
+        {
+          type: "line",
+          name: getChartDimensions(probe)[3],
+          showSymbol: false,
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[3],
+          },
+          z: 0,
+        },
+      ];
+    case "CPU":
+    case "GPU":
+      return [
+        {
+          type: "line",
+          name: getChartDimensions(probe)[1],
+          showSymbol: false,
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[1],
+          },
+        },
+      ];
+    case "MEM":
+      return [
+        {
+          type: "line",
+          name: getChartDimensions(probe)[1],
+          showSymbol: false,
+          stack: "total",
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[1],
+          },
+        },
+        {
+          type: "line",
+          name: getChartDimensions(probe)[2],
+          showSymbol: false,
+          stack: "total",
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[2],
+          },
+        },
+        {
+          type: "line",
+          name: getChartDimensions(probe)[3],
+          showSymbol: false,
+          stack: "total",
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[3],
+          },
+        },
+      ];
+    case "NET":
+      return [
+        {
+          type: "line",
+          name: getChartDimensions(probe)[2],
+          showSymbol: false,
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[2],
+          },
+        },
+        {
+          type: "line",
+          name: getChartDimensions(probe)[1],
+          showSymbol: false,
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[1],
+          },
+        },
+      ];
+    case "DISK":
+    case "ZFS":
+      return [
+        {
+          type: "line",
+          name: getChartDimensions(probe)[1],
+          showSymbol: false,
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[1],
+          },
+        },
+        {
+          type: "line",
+          name: getChartDimensions(probe)[2],
+          showSymbol: false,
+          areaStyle: {},
+          encode: {
+            x: getChartDimensions(probe)[0],
+            y: getChartDimensions(probe)[2],
+          },
+        },
+      ];
+  }
 }
 
-export function getDiskOptions(probe: Probe, source: [][]): echarts.EChartsOption {
+export function updateChartOption(source: [][]): echarts.EChartsOption {
   return {
-    color: ["#109618", "#3366cc"],
-    title: probe.type === "DISK" ? getTitle("Disk usage: " + probe.label + " (MiB/s)") : getTitle("ZFS dataset usage: " + probe.label + " (MiB/s)"),
-    legend: getLegend(["Read", "Write"]),
-    grid: getGrid(),
-    xAxis: getXAxis(),
-    yAxis: getYAxis(),
-    tooltip: getTooltip(),
     dataset: {
       source: source,
-      dimensions: ["timestamp", "Read", "Write"],
     },
-    series: [
-      {
-        name: "Read",
-        type: "line",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "Read",
-        },
-        showSymbol: false,
-      },
-      {
-        name: "Write",
-        type: "line",
-        areaStyle: {},
-        encode: {
-          x: "timestamp",
-          y: "Write",
-        },
-        showSymbol: false,
-      },
-    ],
   };
 }

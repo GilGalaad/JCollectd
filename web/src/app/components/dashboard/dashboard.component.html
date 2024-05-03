@@ -1,12 +1,12 @@
 <div class="navbar">
   <div class="navbar-left neon">
     <i class="fas fa-chart-area icon"></i>
-    <span>{{ runtime?.hostname }}</span>
+    <span>{{ hostname }}</span>
   </div>
 
   <div class="navbar-right neon">
     <i class="fas fa-clock icon"></i>
-    <span>{{ runtime?.collectTms | date: "dd/MM/yyyy HH:mm:ss" }}</span>
+    <span>{{ collectTms | date: "dd/MM/yyyy HH:mm:ss" }}</span>
   </div>
 </div>
 
@@ -19,8 +19,7 @@
 
   <div class="footer">
     <div class="timings">
-      Time spent collecting samples: {{ runtime?.collectElapsed ? runtime?.collectElapsed : "-" }}, persisting samples:
-      {{ runtime?.persistElapsed ? runtime?.persistElapsed : "-" }}, generating report: {{ runtime?.reportElapsed ? runtime?.reportElapsed : "-" }}
+      Time spent collecting samples: {{ collectElapsed ?? "-" }}, persisting samples: {{ persistElapsed ?? "-" }}, generating report: {{ reportElapsed ?? "-" }}
     </div>
   </div>
 

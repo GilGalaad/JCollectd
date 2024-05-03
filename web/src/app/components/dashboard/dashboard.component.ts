@@ -3,9 +3,9 @@ import { AfterViewChecked, Component, OnDestroy, OnInit } from "@angular/core";
 import { Title } from "@angular/platform-browser";
 import * as echarts from "echarts";
 import { Subscription, interval } from "rxjs";
-import { Probe, Runtime } from "../../services/api.model";
+import { Probe } from "../../services/api.model";
 import { ApiService } from "../../services/api.service";
-import { ERROR_MESSAGE, getCpuGpuOptions, getDiskOptions, getLoadOptions, getMemOptions, getNetOptions } from "./dashboard.helper";
+import { ERROR_MESSAGE, createChartOption, updateChartOption } from "./dashboard.helper";
 
 @Component({
   selector: "app-dashboard",
@@ -15,9 +15,15 @@ import { ERROR_MESSAGE, getCpuGpuOptions, getDiskOptions, getLoadOptions, getMem
   styleUrl: "./dashboard.component.scss",
 })
 export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
-  runtime: Runtime | null = null;
+  hostname: string | null = null;
+  interval: number = 60;
   probes: Probe[] = [];
+  collectTms: Date | null = null;
+  collectElapsed: string | null = null;
+  persistElapsed: string | null = null;
+  reportElapsed: string | null = null;
   datasets: [][][] = [];
+
   charts: echarts.ECharts[] = [];
   errorMessage: string | null = null;
   timer$: Subscription | null = null;
@@ -28,7 +34,27 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.fetchData();
+    this.initData();
+  }
+
+  private initData() {
+    this.apiService.getRuntime().subscribe({
+      next: (response) => {
+        this.hostname = response.hostname;
+        this.interval = response.interval;
+        this.probes = response.probes;
+        this.collectTms = response.collectTms;
+        this.collectElapsed = response.collectElapsed;
+        this.persistElapsed = response.persistElapsed;
+        this.reportElapsed = response.reportElapsed;
+        this.datasets = response.datasets;
+        this.title.setTitle(this.hostname);
+        this.errorMessage = null;
+      },
+      error: (_) => {
+        this.errorMessage = ERROR_MESSAGE;
+      },
+    });
   }
 
   ngAfterViewChecked(): void {
@@ -38,17 +64,26 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     }
   }
 
-  private fetchData() {
+  private initCharts() {
+    this.probes.forEach((probe, idx) => {
+      const chart = echarts.init(document.getElementById("chart" + idx));
+      const option = createChartOption(probe, this.datasets[idx]);
+      chart.setOption(option, true);
+      this.charts.push(chart);
+    });
+    this.timer$ = interval(this.interval * 1000).subscribe(() => this.updateData());
+  }
+
+  private updateData() {
     this.apiService.getRuntime().subscribe({
       next: (response) => {
-        this.runtime = response;
-        this.title.setTitle(this.runtime.hostname);
-        this.probes = this.runtime.probes;
-        this.datasets = this.runtime.datasets;
+        this.collectTms = response.collectTms;
+        this.collectElapsed = response.collectElapsed;
+        this.persistElapsed = response.persistElapsed;
+        this.reportElapsed = response.reportElapsed;
+        this.datasets = response.datasets;
         this.errorMessage = null;
-        if (this.charts.length > 0) {
-          this.updateCharts();
-        }
+        this.updateCharts();
       },
       error: (_) => {
         this.errorMessage = ERROR_MESSAGE;
@@ -56,36 +91,11 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
     });
   }
 
-  private initCharts() {
-    this.probes.forEach((probe, idx) => {
-      const chart = echarts.init(document.getElementById("chart" + idx));
-      chart.setOption(this.createChartOption(probe, idx), true);
-      this.charts.push(chart);
-    });
-    this.timer$ = interval(60000).subscribe(() => this.fetchData());
-  }
-
   private updateCharts() {
-    this.probes.forEach((probe, idx) => {
-      this.charts[idx].setOption(this.createChartOption(probe, idx), false);
+    this.charts.forEach((chart, idx) => {
+      const option = updateChartOption(this.datasets[idx]);
+      chart.setOption(option, false);
     });
-  }
-
-  private createChartOption(probe: Probe, idx: number) {
-    switch (probe.type) {
-      case "LOAD":
-        return getLoadOptions(probe, this.datasets[idx]);
-      case "CPU":
-      case "GPU":
-        return getCpuGpuOptions(probe, this.datasets[idx]);
-      case "MEM":
-        return getMemOptions(probe, this.datasets[idx]);
-      case "NET":
-        return getNetOptions(probe, this.datasets[idx]);
-      case "DISK":
-      case "ZFS":
-        return getDiskOptions(probe, this.datasets[idx]);
-    }
   }
 
   ngOnDestroy(): void {

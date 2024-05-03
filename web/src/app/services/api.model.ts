@@ -1,10 +1,11 @@
 export interface Runtime {
   hostname: string;
+  interval: number;
   probes: Probe[];
-  collectTms?: Date | null;
-  collectElapsed?: string | null;
-  persistElapsed?: string | null;
-  reportElapsed?: string | null;
+  collectTms: Date | null;
+  collectElapsed: string | null;
+  persistElapsed: string | null;
+  reportElapsed: string | null;
   datasets: [][][];
 }
 

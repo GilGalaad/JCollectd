@@ -104,7 +104,7 @@ public class WebEngine implements HttpHandler {
             }
         }
 
-        Runtime runtime = new Runtime(config.getHostname(), config.getProbes(),
+        Runtime runtime = new Runtime(config.getHostname(), config.getInterval().getSeconds(), config.getProbes(),
                 engine.getCurResult() != null ? engine.getCurResult().getCollectTms() : null,
                 engine.getCollectElapsed() != null ? smartElapsed(engine.getCollectElapsed()) : null,
                 engine.getPersistElapsed() != null ? smartElapsed(engine.getPersistElapsed()) : null,

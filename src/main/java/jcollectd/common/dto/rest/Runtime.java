@@ -10,6 +10,7 @@ import java.util.List;
 public class Runtime {
 
     private final String hostname;
+    private final Long interval;
     private final List<Probe> probes;
     private final Instant collectTms;
     private final String collectElapsed;
