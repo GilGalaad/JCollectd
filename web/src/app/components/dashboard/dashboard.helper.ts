@@ -7,6 +7,7 @@ const TEXT_COLOR = "gainsboro";
 const FONT_FAMILY = "Verdana, Geneva, sans-serif";
 const INACTIVE_TEXT_COLOR = "dimgray";
 const LINE_COLOR = "silver";
+const AREA_OPACITY = 0.5;
 
 export function createChartOption(probe: Probe, source: [][]): echarts.EChartsOption {
   const ret: echarts.EChartsOption = {};
@@ -167,11 +168,12 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[1],
           showSymbol: false,
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[1],
           },
-          z: 2,
+          z: 0,
         },
         {
           type: "line",
@@ -191,7 +193,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[3],
           },
-          z: 0,
+          z: 2,
         },
       ];
     case "CPU":
@@ -201,7 +203,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[1],
           showSymbol: false,
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[1],
@@ -215,7 +217,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           name: getChartDimensions(probe)[1],
           showSymbol: false,
           stack: "total",
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[1],
@@ -226,7 +228,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           name: getChartDimensions(probe)[2],
           showSymbol: false,
           stack: "total",
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[2],
@@ -237,7 +239,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           name: getChartDimensions(probe)[3],
           showSymbol: false,
           stack: "total",
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[3],
@@ -250,7 +252,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[2],
           showSymbol: false,
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[2],
@@ -260,7 +262,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[1],
           showSymbol: false,
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[1],
@@ -274,7 +276,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[1],
           showSymbol: false,
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[1],
@@ -284,7 +286,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
           type: "line",
           name: getChartDimensions(probe)[2],
           showSymbol: false,
-          areaStyle: {},
+          areaStyle: { opacity: AREA_OPACITY },
           encode: {
             x: getChartDimensions(probe)[0],
             y: getChartDimensions(probe)[2],
