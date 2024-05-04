@@ -9,18 +9,18 @@
 name="jcollectd"
 rcvar="${name}_enable"
 desc="JCollectd java monitoring daemon"
-command="/usr/local/openjdk17/bin/java"
+command="/usr/local/openjdk21/bin/java"
 start_cmd="${name}_start"
 pidfile="/var/run/${name}.pid"
-chdir="/store/maintenance/JCollectd"
-javaopts="-Xms64m -Xmx64m"
+chdir="/store/maintenance/jcollectd"
+javaopts="-Xms32m -Xmx32m"
 
 load_rc_config $name
 : ${jcollectd_enable:="NO"}
 
 jcollectd_start()
 {
-	cd ${chdir} && nohup ${command} ${javaopts} -jar JCollectd.jar jcollectd.properties > jcollectd.log & echo $! > ${pidfile}
+        cd ${chdir} && nohup ${command} ${javaopts} -jar jcollectd.jar config.yaml > jcollectd.log & echo $! > ${pidfile}
 }
 
 run_rc_command "$1"

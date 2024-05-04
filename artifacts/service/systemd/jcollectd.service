@@ -1,11 +1,12 @@
 [Unit]
-Description=JCollectd, a simple server monitoring daemon, purely written in Java
+Description=JCollectd java monitoring daemon
 After=network-online.target
 
 [Service]
 User=root
 Group=root
-ExecStart=/opt/jdk11/bin/java -Xms32m -Xmx32m -jar /opt/JCollectd/JCollectd.jar /opt/JCollectd/jcollectd.properties
+WorkingDirectory=/opt/jcollectd
+ExecStart=/opt/jdk21/bin/java -Xms32m -Xmx32m -jar jcollectd.jar config.yaml
 SuccessExitStatus=143
 
 [Install]
