@@ -62,7 +62,7 @@ public class WebEngine implements HttpHandler {
     private Response serveStaticResource(String path) throws IOException {
         // emulate nginx try_files, serve target file if exists, otherwise index.html
         // since the webapp could be mounted in a specific context root, extract last fragment from the path and assume relative to web directory
-        String fragment = "/"+ Arrays.asList(path.split("/")).getLast();
+        String fragment = "/" + Arrays.asList(path.split("/", -1)).getLast();
         if (fragment.equals("/")) {
             return handleIndexRequest();
         }
