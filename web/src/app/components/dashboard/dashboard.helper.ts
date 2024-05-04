@@ -250,7 +250,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
       return [
         {
           type: "line",
-          name: getChartDimensions(probe)[2],
+          name: getChartDimensions(probe)[1],
           showSymbol: false,
           areaStyle: { opacity: AREA_OPACITY },
           encode: {
@@ -260,7 +260,7 @@ function getChartSeries(probe: Probe): echarts.SeriesOption[] {
         },
         {
           type: "line",
-          name: getChartDimensions(probe)[1],
+          name: getChartDimensions(probe)[2],
           showSymbol: false,
           areaStyle: { opacity: AREA_OPACITY },
           encode: {
