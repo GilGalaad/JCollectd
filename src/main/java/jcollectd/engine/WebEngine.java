@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static jcollectd.common.CommonUtils.OBJECT_MAPPER;
@@ -59,12 +60,13 @@ public class WebEngine implements HttpHandler {
     }
 
     private Response serveStaticResource(String path) throws IOException {
-        // if root is requested, serve index.html like a normal webserver
-        if (path.equals("/")) {
+        // emulate nginx try_files, serve target file if exists, otherwise index.html
+        // since the webapp could be mounted in a specific context root, extract last fragment from the path and assume relative to web directory
+        String fragment = "/"+ Arrays.asList(path.split("/")).getLast();
+        if (fragment.equals("/")) {
             return handleIndexRequest();
         }
-        // otherwise, emulate nginx try_files, serve target file if exists, otherwise index.html
-        try (var is = this.getClass().getResourceAsStream("/web" + path)) {
+        try (var is = this.getClass().getResourceAsStream("/web" + fragment)) {
             if (is == null) {
                 return handleIndexRequest();
             }
@@ -72,7 +74,6 @@ public class WebEngine implements HttpHandler {
             String contentType = switch (path) {
                 case String s when s.toLowerCase().endsWith(".css") -> "text/css; charset=utf-8";
                 case String s when s.toLowerCase().endsWith(".js") -> "text/javascript; charset=utf-8";
-                case String s when s.toLowerCase().endsWith(".png") -> "image/png";
                 default -> "application/octet-stream";
             };
             return new Response(is.readAllBytes(), contentType);
