@@ -79,7 +79,7 @@ public class ConfigurationParser {
                 throw new ConfigurationException("Field retention is not a valid duration");
             }
         }).orElse(Duration.ofHours(12));
-        log.info("Data retention: {}", interval);
+        log.info("Data retention: {}", retention);
 
         int port = Optional.ofNullable(configMapping.getPort()).map(s -> {
             try {
