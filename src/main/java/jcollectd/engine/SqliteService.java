@@ -193,10 +193,9 @@ public class SqliteService implements AutoCloseable {
         }
     }
 
-    public List<Object[]> getLoadSamples(Instant after) throws SQLException {
+    public List<Object[]> getLoadSamples() throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load1, load5, load15 FROM tb_load_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load1, load5, load15 FROM tb_load_sample ORDER BY sample_tms ASC")) {
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{
@@ -211,10 +210,9 @@ public class SqliteService implements AutoCloseable {
         return ret;
     }
 
-    public List<Object[]> getCpuSamples(Instant after) throws SQLException {
+    public List<Object[]> getCpuSamples() throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_cpu_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_cpu_sample ORDER BY sample_tms ASC")) {
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{
@@ -227,10 +225,9 @@ public class SqliteService implements AutoCloseable {
         return ret;
     }
 
-    public List<Object[]> getMemSamples(Instant after) throws SQLException {
+    public List<Object[]> getMemSamples() throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, mem, cache, swap FROM tb_mem_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, mem, cache, swap FROM tb_mem_sample ORDER BY sample_tms ASC")) {
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{
@@ -245,11 +242,10 @@ public class SqliteService implements AutoCloseable {
         return ret;
     }
 
-    public List<Object[]> getNetSamples(Instant after, String device) throws SQLException {
+    public List<Object[]> getNetSamples(String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, rx, tx FROM tb_net_sample WHERE sample_tms > ? AND device = ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
-            pstmt.setString(2, device);
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, rx, tx FROM tb_net_sample WHERE device = ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, device);
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{
@@ -263,11 +259,10 @@ public class SqliteService implements AutoCloseable {
         return ret;
     }
 
-    public List<Object[]> getDiskSamples(Instant after, String device) throws SQLException {
+    public List<Object[]> getDiskSamples(String device) throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, read, write FROM tb_disk_sample WHERE sample_tms > ? AND device = ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
-            pstmt.setString(2, device);
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, read, write FROM tb_disk_sample WHERE device = ? ORDER BY sample_tms ASC")) {
+            pstmt.setString(1, device);
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{
@@ -281,10 +276,9 @@ public class SqliteService implements AutoCloseable {
         return ret;
     }
 
-    public List<Object[]> getGpuSamples(Instant after) throws SQLException {
+    public List<Object[]> getGpuSamples() throws SQLException {
         List<Object[]> ret = new ArrayList<>();
-        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_gpu_sample WHERE sample_tms > ? ORDER BY sample_tms ASC")) {
-            pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(after));
+        try (var pstmt = conn.prepareStatement("SELECT sample_tms, load FROM tb_gpu_sample ORDER BY sample_tms ASC")) {
             try (var rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     ret.add(new Object[]{

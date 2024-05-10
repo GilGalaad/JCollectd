@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -88,18 +87,17 @@ public class WebEngine implements HttpHandler {
 
     private Response handleApiRequest() throws SQLException, JsonProcessingException {
         long startTime = System.nanoTime();
-        Instant after = Instant.now().minus(config.getRetention());
         List<List<Object[]>> datasets = new ArrayList<>(config.getProbes().size());
         try (var service = new SqliteService()) {
             service.initializeDatabase();
             for (var probe : config.getProbes()) {
                 var rs = switch (probe.getType()) {
-                    case LOAD -> service.getLoadSamples(after);
-                    case CPU -> service.getCpuSamples(after);
-                    case MEM -> service.getMemSamples(after);
-                    case NET -> service.getNetSamples(after, probe.getDevice());
-                    case DISK, ZFS -> service.getDiskSamples(after, probe.getDevice());
-                    case GPU -> service.getGpuSamples(after);
+                    case LOAD -> service.getLoadSamples();
+                    case CPU -> service.getCpuSamples();
+                    case MEM -> service.getMemSamples();
+                    case NET -> service.getNetSamples(probe.getDevice());
+                    case DISK, ZFS -> service.getDiskSamples(probe.getDevice());
+                    case GPU -> service.getGpuSamples();
                 };
                 datasets.add(rs);
             }
