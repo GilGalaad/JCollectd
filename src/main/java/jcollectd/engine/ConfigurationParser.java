@@ -81,6 +81,15 @@ public class ConfigurationParser {
         }).orElse(Duration.ofHours(12));
         log.info("Data retention: {}", interval);
 
+        int port = Optional.ofNullable(configMapping.getPort()).map(s -> {
+            try {
+                return Integer.parseUnsignedInt(s);
+            } catch (NumberFormatException ex) {
+                throw new ConfigurationException("Field retention is not a valid duration");
+            }
+        }).orElse(8080);
+        log.info("Listening on port: {}", port);
+
         if (configMapping.getProbes() == null || configMapping.getProbes().isEmpty()) {
             throw new ConfigurationException("No probe defined");
         }
@@ -126,7 +135,7 @@ public class ConfigurationParser {
             log.info("Probe #{}: {}", i + 1, probe.prettyPrint());
         }
 
-        return new AppConfig(os, hostname, interval, retention, probes);
+        return new AppConfig(os, hostname, interval, retention, port, probes);
     }
 
 }

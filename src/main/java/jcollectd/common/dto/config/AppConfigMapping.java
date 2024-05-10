@@ -13,6 +13,7 @@ public class AppConfigMapping {
     private String hostname;
     private String interval;
     private String retention;
+    private String port;
     private List<ProbeMapping> probes;
 
     @Data

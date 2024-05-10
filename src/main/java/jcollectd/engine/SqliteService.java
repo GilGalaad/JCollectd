@@ -98,7 +98,7 @@ public class SqliteService implements AutoCloseable {
         }
     }
 
-    public void persistSamples(List<ComputedSample> samples) throws SQLException {
+    public void persistSamples(List<ComputedSample> samples, Instant deleteBefore) throws SQLException {
         try (var stmt = conn.createStatement()) {
             stmt.executeUpdate(BEGIN_TRANSACTION);
 
@@ -179,6 +179,13 @@ public class SqliteService implements AutoCloseable {
                         pstmt.addBatch();
                     }
                     pstmt.executeBatch();
+                }
+            }
+
+            for (String table : List.of("tb_load_sample", "tb_cpu_sample", "tb_mem_sample", "tb_net_sample", "tb_disk_sample", "tb_gpu_sample")) {
+                try (var pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE sample_tms <= ?")) {
+                    pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(deleteBefore));
+                    pstmt.executeUpdate();
                 }
             }
 
@@ -288,21 +295,6 @@ public class SqliteService implements AutoCloseable {
             }
         }
         return ret;
-    }
-
-    public void janitor(Instant before) throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(BEGIN_TRANSACTION);
-
-            for (String table : List.of("tb_load_sample", "tb_cpu_sample", "tb_mem_sample", "tb_net_sample", "tb_disk_sample", "tb_gpu_sample")) {
-                try (var pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE sample_tms <= ?")) {
-                    pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(before));
-                    pstmt.executeUpdate();
-                }
-            }
-
-            stmt.executeUpdate(COMMIT);
-        }
     }
 
 }

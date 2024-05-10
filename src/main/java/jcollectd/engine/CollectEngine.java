@@ -13,7 +13,6 @@ import lombok.Getter;
 import lombok.extern.log4j.Log4j2;
 
 import java.sql.SQLException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -45,7 +44,6 @@ public class CollectEngine {
     private volatile Long collectElapsed;
     @Getter
     private volatile Long persistElapsed;
-    private Instant lastJanitorTms = Instant.now();
 
     public CollectEngine(AppConfig config) {
         this.config = config;
@@ -100,17 +98,9 @@ public class CollectEngine {
 
                 // persisting samples
                 startTime = System.nanoTime();
-                persistSamples(computedSamples);
+                persistSamples(computedSamples, collectTms.minus(config.getRetention()));
                 persistElapsed = System.nanoTime() - startTime;
                 log.debug("Persisting time: {}", smartElapsed(persistElapsed));
-
-                // janitor job, every hour
-                if (collectTms.isAfter(lastJanitorTms.plus(Duration.ofHours(1)))) {
-                    lastJanitorTms = collectTms;
-                    startTime = System.nanoTime();
-                    janitor(collectTms.minus(config.getRetention()));
-                    log.debug("Janitoring time: {}", smartElapsed(System.nanoTime() - startTime));
-                }
             } catch (InterruptedException ex) {
                 log.info("Received KILL signal, shutting down");
                 Thread.currentThread().interrupt();
@@ -166,21 +156,12 @@ public class CollectEngine {
         return ret;
     }
 
-    private void persistSamples(List<ComputedSample> samples) {
+    private void persistSamples(List<ComputedSample> samples, Instant deleteBefore) {
         try (var service = new SqliteService()) {
             service.initializeDatabase();
-            service.persistSamples(samples);
+            service.persistSamples(samples, deleteBefore);
         } catch (SQLException ex) {
             log.error("Persisting data failed: {}", ExceptionUtils.getCanonicalFormWithStackTrace(ex));
-            throw new CollectException();
-        }
-    }
-
-    private void janitor(Instant before) {
-        try (var service = new SqliteService()) {
-            service.janitor(before);
-        } catch (SQLException ex) {
-            log.error("Janitor job failed: {}", ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             throw new CollectException();
         }
     }

@@ -30,7 +30,7 @@ public class Launcher {
             CollectEngine engine = new CollectEngine(config);
 
             // creating http server
-            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0, "/", new WebEngine(config, engine));
+            HttpServer server = HttpServer.create(new InetSocketAddress(config.getPort()), 0, "/", new WebEngine(config, engine));
             server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
 
             // adding shutdown hook for clean shutdown when killed

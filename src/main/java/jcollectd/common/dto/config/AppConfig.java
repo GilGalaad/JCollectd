@@ -12,6 +12,7 @@ public class AppConfig {
     private final String hostname;
     private final Duration interval;
     private final Duration retention;
+    private final int port;
     private final List<Probe> probes;
 
 }
