@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { AfterViewChecked, Component, OnDestroy, OnInit } from "@angular/core";
+import { AfterViewChecked, Component, HostListener, OnDestroy, OnInit } from "@angular/core";
 import { Title } from "@angular/platform-browser";
 import * as echarts from "echarts";
 import { Subscription, interval } from "rxjs";
@@ -96,6 +96,13 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
       const option = updateChartOption(this.datasets[idx]);
       chart.setOption(option, false);
     });
+  }
+
+  @HostListener("window:resize", ["$event"])
+  onResize(event: Event) {
+    if (this.charts.length > 0) {
+      this.charts.forEach((chart, _) => chart.resize());
+    }
   }
 
   ngOnDestroy(): void {
