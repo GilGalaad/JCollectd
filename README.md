@@ -1,6 +1,6 @@
 # JCollectd
 
-This project aims to be a Java (relatively) lightweight alternative to more complete but more complex monitoring system like Nagios or collectd. 
+This project aims to be a Java (relatively) lightweight alternative to more complete but more complex monitoring system like Nagios. 
 It has simplicity on his mind: no external dependency except Java 21, just one Jar file, one configuration file and one (single file) sqlite database.
 
 The program does the following:
@@ -17,7 +17,7 @@ Build is done via [Apache Maven](https://maven.apache.org/)
 ```bash
 $ mvn clean package
 ```
-A single file `jcollectd.jar` will be produced into `target/` directory. Copy it whenever you want.
+A single file `jcollectd.jar` will be produced into `target` directory. Copy it whenever you want.
 
 ## Configuration
 Configuration is done via single YAML file. 
@@ -35,10 +35,20 @@ Supported parameters are:
 Each probe can be confiured by the following parameters:
 | Parameter | Mandatory | Defaut value | Description |
 | --- | --- | --- | --- |
-| `type` | yes | - | The probe type, can have one of the following values: <ul><li>`load`: enables the average load sampling</li> <li> `cpu`: enables the CPU percent utilization sampling</li> <li> `mem`: enables the memory, swap and cache sampling</li> <li> `net`: enables the network traffic sampling</li> <li> `disk`: enables the hard disk usage sampling</li> <li> `zfs`: enables the ZFS dataset usage sampling (currently on FreeBSD only)</li> <li> `gpu`: enables the GPU usage sampling (currently with Nvidia cards only, and `nvidia-smi` is assumed to be installed)</li></ul> |
+| `type` | yes | - | The probe type, can have one of the following values: `load`, `cpu`, `mem`, `net`, `disk`, `zfs`, `gpu`, see below for details |
 | `size` | no | `full` | The chart size, can be full or half page width |
 | `device` | yes | - | Probes `net`, `disk` and `zfs` require the device you want to monitor, respectively the name of the network interface, or the block device, or the ZFS dataset. This parmeter is ignored for other probe types |
 | `label` | no | the value of `device` paremeter | Used to customize when you want to customize the device name shown in the chart, with a more meaningful value (e.g. `LAN` and `WAN` instead of `eth0` and `eth1`) |
+
+| Probe type | Description |
+| --- | --- |
+| `load` | enables average load sampling |
+| `cpu` | enables CPU percent utilization sampling |
+| `mem` | enables memory, swap and cache sampling |
+| `net` | enables network traffic sampling |
+| `disk` |enables block device usage sampling |
+| `zfs` | enables ZFS dataset usage sampling (currently on FreeBSD only) |
+| `gpu` | enables GPU usage sampling (currently with Nvidia cards only, and `nvidia-smi` is assumed to be installed) |
 
 #### Additional informations
 `disk` probe supports the aggregation of devices, with a `+` separated list of devices to be aggregated, in case of soft RAID arrays or ZFS pools.\
