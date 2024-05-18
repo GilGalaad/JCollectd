@@ -11,7 +11,7 @@ The program does the following:
 * provides a simple embedded [Angular](https://angular.io/) web application, featuring nice reports made with [Apache ECharts](https://echarts.apache.org/en/index.html)
 * rinse and repeat until stopped
 
-![immagine](https://github.com/GilGalaad/JCollectd/assets/18036990/73ff1916-b9ab-4f7c-b48d-212225c74955)
+![immagine](https://github.com/GilGalaad/JCollectd/assets/18036990/aab938f3-31c2-4343-86fa-1c24e3848d4e)
 
 ## Build and installation
 
