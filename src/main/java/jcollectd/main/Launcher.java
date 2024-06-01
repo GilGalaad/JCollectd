@@ -42,7 +42,6 @@ public class Launcher {
             engine.run();
         } catch (ConfigurationException | CollectException ex) {
             // exception already handled and logged
-            log.error(ExceptionUtils.getCanonicalForm(ex));
             System.exit(1);
         } catch (Exception ex) {
             // unhandled exception
