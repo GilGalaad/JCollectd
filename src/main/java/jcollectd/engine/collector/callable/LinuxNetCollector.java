@@ -22,7 +22,7 @@ public class LinuxNetCollector implements Collector {
                 lo:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
             enp0s3:  305024    3127    0    0    0     0          0         0   377114    2893    0    0    0     0       0          0
          */
-        try (BufferedReader br = new BufferedReader(new FileReader("/proc/dev/net"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader("/proc/net/dev"))) {
             long rx = 0, tx = 0;
             String line;
             while ((line = br.readLine()) != null) {
