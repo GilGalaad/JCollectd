@@ -100,15 +100,11 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
 
   @HostListener("window:resize", ["$event"])
   onResize(event: Event) {
-    if (this.charts.length > 0) {
-      this.charts.forEach((chart, _) => chart.resize());
-    }
+    this.charts.forEach((chart) => chart.resize());
   }
 
   ngOnDestroy(): void {
-    for (let chart of this.charts) {
-      chart.dispose();
-    }
+    this.charts.forEach((chart) => chart.dispose());
     if (this.timer$) {
       this.timer$.unsubscribe();
     }
