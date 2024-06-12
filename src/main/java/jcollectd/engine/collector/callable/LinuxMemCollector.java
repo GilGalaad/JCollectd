@@ -5,12 +5,16 @@ import lombok.extern.log4j.Log4j2;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Log4j2
 public class LinuxMemCollector implements Collector {
 
     @Override
     public MemRawSample call() throws Exception {
+        long mem, cache, swap = 0;
+
         /*
             # cat /proc/meminfo
             MemTotal:        3992412 kB
@@ -43,13 +47,34 @@ public class LinuxMemCollector implements Collector {
                     swapFree = Long.parseLong(line.split("\\s+")[1]) * 1024L;
                 }
             }
-            long mem = memTotal - memAvailable;
-            long cache = cached + buffers + sReclaimable;
-            long swap = swapTotal - swapFree;
-            MemRawSample ret = new MemRawSample(mem, cache, swap);
-            log.debug("Collected sample: {}", ret);
-            return ret;
+            mem = memTotal - memAvailable;
+            cache = cached + buffers + sReclaimable;
+            swap = swapTotal - swapFree;
         }
+
+        /*
+            # cat /proc/spl/kstat/zfs/arcstats
+            name                            type data
+            ...
+            size                            4    33650304736
+         */
+        if (Files.isReadable(Path.of("/proc/spl/kstat/zfs/arcstats"))) {
+            try (BufferedReader br = new BufferedReader(new FileReader("/proc/spl/kstat/zfs/arcstats"))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    if (line.startsWith("size")) {
+                        long arc = Long.parseLong(line.split("\\s+")[2]);
+                        // because of how ZFS on Linux is implemented, the ARC memory behaves like cache memory, but is aggregated by the kernel as ordinary memory allocations
+                        mem -= arc;
+                        cache += arc;
+                    }
+                }
+            }
+        }
+
+        MemRawSample ret = new MemRawSample(mem, cache, swap);
+        log.debug("Collected sample: {}", ret);
+        return ret;
     }
 
 }
