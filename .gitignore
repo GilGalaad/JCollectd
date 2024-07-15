@@ -1,4 +1,9 @@
+### IDE ###
 /.idea/
+
+### Maven ###
 /target/
+
+### local environment ###
 /config.yaml
 /samples.db

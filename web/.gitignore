@@ -1,7 +1,6 @@
 ### Node ###
-/node
 /node_modules
 
-### Angular
-/dist/
+### Angular ###
 /.angular/
+/dist/

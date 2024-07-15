@@ -1,7 +1,7 @@
 # JCollectd
 
 This project aims to be a Java (relatively) lightweight alternative to more complete but more complex monitoring system like Nagios.
-It has simplicity on his mind: no external dependency except Java 21, just one Jar file, one configuration file and one (single file) sqlite database.
+It has simplicity on his mind: no external dependency except Java 21, just one jar file, one configuration file and one (single file) sqlite database.
 
 The program does the following:
 
@@ -13,15 +13,37 @@ The program does the following:
 
 ![immagine](https://github.com/GilGalaad/JCollectd/assets/18036990/aab938f3-31c2-4343-86fa-1c24e3848d4e)
 
-## Build and installation
+## Build instructions
+To build the application, you will need the following software to be installed on your system:
 
-Build is done via [Apache Maven](https://maven.apache.org/)
+* [Java 21](https://adoptium.net/temurin/)
+* [Apache Maven](https://maven.apache.org/)
+* [Node.js](https://nodejs.org/)
+
+Move into the `web` directory, and build the web component:
+
+```bash
+$ npm install
+$ npm run build
+```
+
+Copy the newly produced content of `web/dist/jcollectd/browser` into the static resources of the Java application, located at `src/main/resources/web`.
+
+Move back into the root directory and build the jar:
 
 ```bash
 $ mvn clean package
 ```
 
-A single file `jcollectd.jar` will be produced into `target` directory. Copy it whenever you want.
+An executable file `jcollectd.jar` will be produced into `target` directory. Copy it whenever you want, it's portable.
+
+More conveniently, you can use the provided Dockerfile to build the application, without any dependency except Docker itself, with the following command:
+
+```bash
+$ docker build --output=. --target=out .
+```
+
+Of course, you will still need Java 21 to run the application.
 
 ## Configuration
 
@@ -84,7 +106,7 @@ probes:
 
 ## Usage
 
-Simply execute the jar in background, with a command like this (assuming java binary is in PATH)
+Simply execute the jar in background, with a command like this (assuming Java binary is in PATH)
 
 ```
 nohup java -Xms32m -Xmx32m -jar jcollectd.jar config.yaml > jcollectd.log &
