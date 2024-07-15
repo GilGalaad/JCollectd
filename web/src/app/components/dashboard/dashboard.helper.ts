@@ -30,7 +30,6 @@ export function createChartOption(probe: Probe, source: [][]): echarts.EChartsOp
       fontFamily: FONT_FAMILY,
     },
     icon: "roundRect",
-    data: getChartDimensions(probe).slice(1),
   };
 
   ret.grid = {
