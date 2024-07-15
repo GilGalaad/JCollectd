@@ -98,9 +98,17 @@ public class SqliteService implements AutoCloseable {
         }
     }
 
-    public void persistSamples(List<ComputedSample> samples, Instant deleteBefore) throws SQLException {
+    public void persistSamples(List<ComputedSample> samples, Instant collectTms, Instant deleteBefore) throws SQLException {
         try (var stmt = conn.createStatement()) {
             stmt.executeUpdate(BEGIN_TRANSACTION);
+
+            for (String table : List.of("tb_load_sample", "tb_cpu_sample", "tb_mem_sample", "tb_net_sample", "tb_disk_sample", "tb_gpu_sample")) {
+                try (var pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE sample_tms = ? OR sample_tms <= ?")) {
+                    pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(collectTms));
+                    pstmt.setString(2, DateTimeFormatter.ISO_INSTANT.format(deleteBefore));
+                    pstmt.executeUpdate();
+                }
+            }
 
             List<LoadComputedSample> loads = samples.stream().filter(i -> i instanceof LoadComputedSample).map(i -> (LoadComputedSample) i).toList();
             if (!loads.isEmpty()) {
@@ -179,13 +187,6 @@ public class SqliteService implements AutoCloseable {
                         pstmt.addBatch();
                     }
                     pstmt.executeBatch();
-                }
-            }
-
-            for (String table : List.of("tb_load_sample", "tb_cpu_sample", "tb_mem_sample", "tb_net_sample", "tb_disk_sample", "tb_gpu_sample")) {
-                try (var pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE sample_tms <= ?")) {
-                    pstmt.setString(1, DateTimeFormatter.ISO_INSTANT.format(deleteBefore));
-                    pstmt.executeUpdate();
                 }
             }
 

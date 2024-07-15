@@ -98,7 +98,7 @@ public class CollectEngine {
 
                 // persisting samples
                 startTime = System.nanoTime();
-                persistSamples(computedSamples, collectTms.minus(config.getRetention()));
+                persistSamples(computedSamples);
                 persistElapsed = System.nanoTime() - startTime;
                 log.debug("Persisting time: {}", smartElapsed(persistElapsed));
             } catch (InterruptedException ex) {
@@ -156,10 +156,10 @@ public class CollectEngine {
         return ret;
     }
 
-    private void persistSamples(List<ComputedSample> samples, Instant deleteBefore) {
+    private void persistSamples(List<ComputedSample> samples) {
         try (var service = new SqliteService()) {
             service.initializeDatabase();
-            service.persistSamples(samples, deleteBefore);
+            service.persistSamples(samples, curResult.getCollectTms(), curResult.getCollectTms().minus(config.getRetention()));
         } catch (SQLException ex) {
             log.error("Persisting data failed: {}", ExceptionUtils.getCanonicalFormWithStackTrace(ex));
             throw new CollectException();
