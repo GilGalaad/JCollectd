@@ -40,7 +40,7 @@ An executable file `jcollectd.jar` will be produced into `target` directory. Cop
 More conveniently, you can use the provided Dockerfile to build the application, without any dependency except Docker itself, with the following command:
 
 ```bash
-$ docker build --target=out --output=. .
+$ docker build --target=out --output=out .
 ```
 
 Of course, you will still need Java 21 to run the application.

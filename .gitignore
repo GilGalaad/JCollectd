@@ -3,6 +3,7 @@
 
 ### Maven ###
 /target/
+/out/
 
 ### local environment ###
 /config.yaml
