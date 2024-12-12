@@ -9,7 +9,6 @@ import { ERROR_MESSAGE, createChartOption, updateChartOption } from "./dashboard
 
 @Component({
   selector: "app-dashboard",
-  standalone: true,
   imports: [CommonModule],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.scss",
