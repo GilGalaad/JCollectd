@@ -14,11 +14,11 @@
         <maven.version.ignore>(?i).*(-|\.)(alpha|beta|m|rc|cr)(-?\d+)?</maven.version.ignore>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-        <lombok.version>1.18.34</lombok.version>
-        <log4j.version>2.24.1</log4j.version>
+        <lombok.version>1.18.36</lombok.version>
+        <log4j.version>2.24.2</log4j.version>
         <slf4j.version>2.0.16</slf4j.version>
-        <sqlite.version>3.47.0.0</sqlite.version>
-        <jackson.version>2.18.1</jackson.version>
+        <sqlite.version>3.47.1.0</sqlite.version>
+        <jackson.version>2.18.2</jackson.version>
     </properties>
 
     <dependencies>
