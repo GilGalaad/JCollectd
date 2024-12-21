@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { AfterViewChecked, Component, HostListener, OnDestroy, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from "@angular/core";
 import { Title } from "@angular/platform-browser";
 import * as echarts from "echarts";
 import { Subscription, interval } from "rxjs";
@@ -13,7 +13,7 @@ import { ERROR_MESSAGE, createChartOption, updateChartOption } from "./dashboard
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.scss",
 })
-export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
+export class DashboardComponent implements OnInit, OnDestroy {
   hostname: string | null = null;
   interval: number = 60;
   probes: Probe[] = [];
@@ -30,6 +30,7 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
   constructor(
     private title: Title,
     private apiService: ApiService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -49,18 +50,14 @@ export class DashboardComponent implements OnInit, AfterViewChecked, OnDestroy {
         this.datasets = response.datasets;
         this.title.setTitle(this.hostname);
         this.errorMessage = null;
+
+        this.cdr.detectChanges();
+        this.initCharts();
       },
       error: (_) => {
         this.errorMessage = ERROR_MESSAGE;
       },
     });
-  }
-
-  ngAfterViewChecked(): void {
-    // init charts only if: 1. not done before, 2. probes are loaded, 3. all divs have been created
-    if (this.charts.length === 0 && this.probes.length > 0 && this.probes.length === document.getElementsByClassName("chart-container").length) {
-      this.initCharts();
-    }
   }
 
   private initCharts() {
