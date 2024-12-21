@@ -1,4 +1,4 @@
-FROM node:20 AS build-fe
+FROM node:22 AS build-fe
 WORKDIR /app
 COPY ["web", "./"]
 RUN ["npm", "install"]
