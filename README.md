@@ -1,7 +1,7 @@
 # JCollectd
 
 This project aims to be a Java (relatively) lightweight alternative to more complete but more complex monitoring system like Nagios.
-It has simplicity on his mind: no external dependency except Java 21, just one jar file, one configuration file and one (single file) sqlite database.
+It has simplicity on his mind: no external runtime dependency except Java 21, just one jar file, one configuration file and one (single file) sqlite database.
 
 The program does the following:
 
@@ -57,7 +57,7 @@ Supported parameters are:
 | `interval`  | no        | PT1M          | Interval between samplings, in case you want to customize the granularity, but one minute is a safe and sane default. Expressed as [Duration](https://docs.oracle.com/en%2Fjava%2Fjavase%2F21%2Fdocs%2Fapi%2F%2F/java.base/java/time/Duration.html#parse(java.lang.CharSequence)) |
 | `retention` | no        | PT12H         | Time window of data to keep in the database and to draw charts. Expressed as [Duration](https://docs.oracle.com/en%2Fjava%2Fjavase%2F21%2Fdocs%2Fapi%2F%2F/java.base/java/time/Duration.html#parse(java.lang.CharSequence))                                                       |
 | `port`      | no        | 8080          | HTTP port to bind the webserver to                                                                                                                                                                                                                                                |
-| `probes`    | yes       | -             | List of defined probes. You must define at least one probe of the program will refuse to start                                                                                                                                                                                    |
+| `probes`    | yes       | -             | List of defined probes. You must define at least one probe or the program will refuse to start                                                                                                                                                                                    |
 
 Each probe can be configured by the following parameters:
 
@@ -66,21 +66,21 @@ Each probe can be configured by the following parameters:
 | `type`    | yes       | -                               | The probe type, can have one of the following values: `load`, `cpu`, `mem`, `net`, `disk`, `zfs`, `gpu`, see below for details                                                                                  |
 | `size`    | no        | `full`                          | The chart size, can be full or half page width                                                                                                                                                                  |
 | `device`  | yes       | -                               | Probes `net`, `disk` and `zfs` require the device you want to monitor, respectively the name of the network interface, or the block device, or the ZFS dataset. This parameter is ignored for other probe types |
-| `label`   | no        | the value of `device` parameter | Used to customize when you want to customize the device name shown in the chart, with a more meaningful value (e.g. `LAN` and `WAN` instead of `eth0` and `eth1`)                                               |
+| `label`   | no        | the value of `device` parameter | Used when you want to customize the device name shown in the chart, with a more meaningful value (e.g. `LAN` and `WAN` instead of `eth0` and `eth1`)                                               |
 
-| Probe type | Description                                                                                                |
-|------------|------------------------------------------------------------------------------------------------------------|
-| `load`     | enables average load sampling                                                                              |
-| `cpu`      | enables CPU percent utilization sampling                                                                   |
-| `mem`      | enables memory, swap and cache sampling                                                                    |
-| `net`      | enables network traffic sampling                                                                           |
-| `disk`     | enables block device usage sampling                                                                        |
-| `zfs`      | enables ZFS dataset usage sampling (currently on FreeBSD only)                                             |
-| `gpu`      | enables GPU usage sampling (currently with Nvidia cards only, and `nvidia-smi` is assumed to be installed) |
+| Probe type | Description                                                                                                 |
+|------------|-------------------------------------------------------------------------------------------------------------|
+| `load`     | enables average load sampling                                                                               |
+| `cpu`      | enables CPU percent utilization sampling                                                                    |
+| `mem`      | enables memory, swap and cache sampling                                                                     |
+| `net`      | enables network traffic sampling                                                                            |
+| `disk`     | enables block device usage sampling                                                                         |
+| `zfs`      | enables ZFS dataset usage sampling (currently on FreeBSD only)                                              |
+| `gpu`      | enables GPU usage sampling (currently with Nvidia cards only, and `nvidia-smi` is required to be installed) |
 
 #### Additional information
 
-`disk` probe supports the aggregation of devices, with a `+` separated list of devices to be aggregated, in case of soft RAID arrays or ZFS pools.\
+`disk` probe supports the aggregation of devices, with a `+` separated list of devices to be aggregated, in case of software RAID arrays or ZFS pools.\
 Linux provides I/O totals for `mdadm` raid arrays, so you have the choice to probe the *logical* amount of disk activity (using the array itself as device, e.g. `device: md0`), or the aggregation of single disks composing the array (e.g. `device: sda+sdb+sdc` in case you have a 3-disk RAID5).\
 FreeBSD, on the other hand, provides totally different mechanisms to retrieve the two types of readings, so you can opt for a specific `zfs` probe to get the first, or a standard aggregated `disk` probe for the latter. Notice that ARC is involved in the calculation returned by the kernel, so if you read a 1GB that is totally in cache, `zfs` probe will report the reading, `disk` will not.
 
@@ -118,10 +118,10 @@ In the `artifacts/service` folder you will find examples to run JCollectd as OS 
 
 ## Notes
 
-Worth to say that:
+It is worth saying that:
 
 * The memory footprint is relatively low, a few MB of heap size is enough to run the daemon with a reasonable configuration, but you may want to raise maximum heap size (depending on your dataset size).
 * Even with a very low heap, some memory will be consumed by internal mechanisms of sqlite memory allocation, this will be native memory and cannot be tuned via Java parameters.
-* Logging facility is provided by [log4j2](https://logging.apache.org/log4j/2.x/). The program by default logs only on the console (at `INFO` or `DEBUG` level depending on chosen verbosity) a brief recap of what has been parsed from configuration file during startup, and any unrecoverable error that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why.
+* Logging facility is provided by [log4j2](https://logging.apache.org/log4j/2.x/). The program, at default verbosity, logs only on the console a brief recap of what has been parsed from configuration file during startup, and any unrecoverable error that will prevent a correct monitoring, causing the program to exit. So there is no need to rotate log file (which is actually impossible with `logrotate` because Java ignores HUP signals), a single log file will be enough to discover if something is going wrong, and why.
 
 #### Contributions, critics, suggestions are always welcome. Cheers!
