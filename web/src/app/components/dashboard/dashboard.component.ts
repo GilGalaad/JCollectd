@@ -101,8 +101,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.charts.forEach((chart) => chart.dispose());
-    if (this.timer$) {
-      this.timer$.unsubscribe();
-    }
+    this.timer$?.unsubscribe();
   }
 }
