@@ -15,10 +15,10 @@
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <lombok.version>1.18.38</lombok.version>
-        <log4j.version>2.24.3</log4j.version>
+        <log4j.version>2.25.0</log4j.version>
         <slf4j.version>2.0.17</slf4j.version>
         <sqlite.version>3.50.1.0</sqlite.version>
-        <jackson.version>2.19.0</jackson.version>
+        <jackson.version>2.19.1</jackson.version>
     </properties>
 
     <dependencies>
