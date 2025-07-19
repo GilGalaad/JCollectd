@@ -23,10 +23,12 @@
     </div>
   </div>
 
-  <div class="footer" *ngIf="errorMessage">
-    <div class="error">
-      <i class="fas fa-exclamation-triangle"></i>
-      {{ errorMessage }}
+  @if (errorMessage) {
+    <div class="footer">
+      <div class="error">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ errorMessage }}
+      </div>
     </div>
-  </div>
+  }
 </div>

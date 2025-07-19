@@ -2,18 +2,18 @@ import { CommonModule } from "@angular/common";
 import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit } from "@angular/core";
 import { Title } from "@angular/platform-browser";
 import * as echarts from "echarts";
-import { Subscription, interval } from "rxjs";
+import { interval, Subscription } from "rxjs";
+import { Api } from "../../services/api";
 import { Probe } from "../../services/api.model";
-import { ApiService } from "../../services/api.service";
-import { ERROR_MESSAGE, createChartOption, updateChartOption } from "./dashboard.helper";
+import { createChartOption, ERROR_MESSAGE, updateChartOption } from "./dashboard.helper";
 
 @Component({
   selector: "app-dashboard",
   imports: [CommonModule],
-  templateUrl: "./dashboard.component.html",
-  styleUrl: "./dashboard.component.scss",
+  templateUrl: "./dashboard.html",
+  styleUrl: "./dashboard.scss",
 })
-export class DashboardComponent implements OnInit, OnDestroy {
+export class Dashboard implements OnInit, OnDestroy {
   hostname: string | null = null;
   interval: number = 60;
   probes: Probe[] = [];
@@ -29,7 +29,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private title: Title,
-    private apiService: ApiService,
+    private api: Api,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -38,7 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private initData() {
-    this.apiService.getRuntime().subscribe({
+    this.api.getRuntime().subscribe({
       next: (response) => {
         this.hostname = response.hostname;
         this.interval = response.interval;
@@ -71,7 +71,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private updateData() {
-    this.apiService.getRuntime().subscribe({
+    this.api.getRuntime().subscribe({
       next: (response) => {
         this.collectTms = response.collectTms;
         this.collectElapsed = response.collectElapsed;
