@@ -6,7 +6,7 @@ import { Runtime } from "./api.model";
 @Injectable({
   providedIn: "root",
 })
-export class Api {
+export class ApiService {
   constructor(private http: HttpClient) {}
 
   getRuntime() {
