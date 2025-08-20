@@ -48,20 +48,19 @@ export function createChartOption(probe: Probe, source: [][]): echarts.EChartsOp
           color: LINE_COLOR,
         },
       },
+      axisLabel: {
+        color: LINE_COLOR,
+      },
     },
   ];
 
   ret.yAxis = [
     {
       type: "value",
-      axisLine: {
-        lineStyle: {
-          color: LINE_COLOR,
-        },
-      },
       axisLabel: {
         margin: 16,
         formatter: probe.type === "CPU" || probe.type === "GPU" ? "{value}%" : undefined,
+        color: LINE_COLOR,
       },
       splitLine: {
         lineStyle: {
