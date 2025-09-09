@@ -14,7 +14,7 @@
         <maven.version.ignore>(?i).*(-|\.)(alpha|beta|m|rc|cr)(-?\d+)?</maven.version.ignore>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.40</lombok.version>
         <log4j.version>2.25.1</log4j.version>
         <slf4j.version>2.0.17</slf4j.version>
         <sqlite.version>3.50.3.0</sqlite.version>
