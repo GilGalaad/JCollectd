@@ -11,7 +11,7 @@ import { createChartOption, ERROR_MESSAGE, updateChartOption } from "./dashboard
   selector: "app-dashboard",
   imports: [CommonModule],
   templateUrl: "./dashboard.component.html",
-  styleUrl: "./dashboard.component.scss",
+  styleUrl: "./dashboard.component.css",
 })
 export class DashboardComponent {
   hostname: string | null = null;
