@@ -3,8 +3,15 @@
 .vscode/
 
 ### Maven ###
-/target/
-/out/
+target/
+out/
+
+### Node ###
+node_modules/
+
+### Angular ###
+.angular/
+dist/
 
 ### local environment ###
 /config.yaml

@@ -1,3 +1,22 @@
-/web/node_modules/
-/web/.angular
-/web/dist
+# git
+.git/
+.gitignore
+
+### IDE ###
+.idea/
+.vscode/
+
+### Maven ###
+target/
+out/
+
+### Node ###
+node_modules/
+
+### Angular ###
+.angular/
+dist/
+
+### local environment ###
+/config.yaml
+/samples.db
