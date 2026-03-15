@@ -1,12 +1,12 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { environment } from "../../environments/environment";
-import { Runtime } from "./api.model";
+import { Runtime } from "./api.types";
 
 @Injectable({
   providedIn: "root",
 })
-export class ApiService {
+export class Api {
   constructor(private http: HttpClient) {}
 
   getRuntime() {

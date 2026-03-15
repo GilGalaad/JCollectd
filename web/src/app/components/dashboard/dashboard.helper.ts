@@ -1,5 +1,5 @@
 import * as echarts from "echarts";
-import { Probe } from "../../services/api.model";
+import { Probe } from "../../services/api.types";
 
 export const ERROR_MESSAGE = "Error while fetching data, connection to backend failed";
 
