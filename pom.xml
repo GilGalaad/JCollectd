@@ -16,7 +16,7 @@
         <maven-assembly-plugin.version>3.8.0</maven-assembly-plugin.version>
         <lombok.version>1.18.46</lombok.version>
         <log4j.version>2.26.0</log4j.version>
-        <slf4j.version>2.0.17</slf4j.version>
+        <slf4j.version>2.0.18</slf4j.version>
         <sqlite.version>3.53.1.0</sqlite.version>
         <jackson.version>2.21.3</jackson.version>
     </properties>
