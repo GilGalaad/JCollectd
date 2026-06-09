@@ -9,7 +9,7 @@
 name="jcollectd"
 rcvar="${name}_enable"
 desc="JCollectd java monitoring daemon"
-command="/usr/local/openjdk21/bin/java"
+command="/usr/local/openjdk25/bin/java"
 start_cmd="${name}_start"
 pidfile="/var/run/${name}.pid"
 chdir="/store/maintenance/jcollectd"

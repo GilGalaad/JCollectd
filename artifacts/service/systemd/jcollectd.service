@@ -6,7 +6,7 @@ After=network-online.target
 User=root
 Group=root
 WorkingDirectory=/opt/jcollectd
-ExecStart=/opt/jdk21/bin/java -Xms32m -Xmx32m -jar jcollectd.jar config.yaml
+ExecStart=java -Xms32m -Xmx32m -jar jcollectd.jar config.yaml
 SuccessExitStatus=143
 
 [Install]
