@@ -4,7 +4,7 @@ COPY ["web", "./"]
 RUN ["npm", "install"]
 RUN ["npm", "run", "build"]
 
-FROM maven:3.9-eclipse-temurin-21 AS build-be
+FROM maven:3.9-eclipse-temurin-25 AS build-be
 WORKDIR /app
 COPY ["pom.xml", "lombok.config", "./"]
 COPY ["src", "src/"]
