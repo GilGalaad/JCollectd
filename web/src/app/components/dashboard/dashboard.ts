@@ -8,8 +8,8 @@ import { Probe } from "../../services/api.types";
 import { createChartOption, ERROR_MESSAGE, updateChartOption } from "./dashboard.helper";
 
 @Component({
-  selector: "app-dashboard",
   imports: [CommonModule],
+  selector: "app-dashboard",
   templateUrl: "./dashboard.html",
   styleUrl: "./dashboard.css",
   changeDetection: ChangeDetectionStrategy.OnPush,
